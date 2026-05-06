@@ -71,22 +71,29 @@
 
 ---
 
-## Phase 2 — CLI Diagnostic Agent
+## Phase 2 — CLI Diagnostic Agent ✅ Complete
 
 **Goal**: Standalone Python package that collects and reports system info.
 
 ### Deliverables
-- [ ] `envforge-agent` PyPI package structure
-- [ ] OS detection module
-- [ ] GPU/VRAM detection (nvidia-smi, wmi)
-- [ ] CUDA version detection
-- [ ] Python environment scanner
-- [ ] NVIDIA driver version parser
-- [ ] WSL detection
-- [ ] RAM/CPU detection
-- [ ] Structured JSON output (`DiagnosticReport` schema)
-- [ ] CLI interface (`envforge diagnose`)
-- [ ] Integration: `POST /api/diagnose` endpoint on backend
+- [x] `envforge-agent` PyPI package structure (`cli/pyproject.toml`)
+- [x] OS detection module — Linux (`/etc/os-release`), Windows (`winreg`), WSL2 detection
+- [x] GPU/VRAM detection — `nvidia-smi` CSV query, multi-GPU support
+- [x] CUDA version detection — `nvcc`, `version.txt`, env vars, `nvidia-smi` fallback
+- [x] Python environment scanner — probes python3.8–3.12 + Windows `py` launcher
+- [x] cuDNN version detection — header file parse + PyTorch fallback
+- [x] WSL detection — `/proc/version`, `WSL_DISTRO_NAME` env, WSL1 vs WSL2 distinction
+- [x] RAM/CPU detection — psutil + `/proc/cpuinfo` + `winreg`
+- [x] Structured JSON output — `DiagnosticReport` Pydantic schema (in sync with backend)
+- [x] CLI: `envforge diagnose` — rich table output, `--output`, `--send`, `--quiet` flags
+- [x] CLI: `envforge verify` — check profile compatibility via API
+- [x] CLI: `envforge fix` — generate repair script from saved report
+- [x] 4 platform JSON fixtures: linux_gpu, wsl_cuda, linux_no_cuda, windows_gpu
+- [x] 20+ unit tests: schema round-trips, mocked detector tests, ReportBuilder integration
+- [x] Integration: `POST /api/v1/diagnose` endpoint on backend (Phase 1)
+
+**Exit Criteria**: `envforge diagnose` outputs valid `DiagnosticReportSchema` JSON
+on Windows, WSL2, and Ubuntu 22.04. ✅
 
 **Exit Criteria**: `envforge diagnose` outputs valid JSON on Windows, WSL, and Ubuntu.
 
