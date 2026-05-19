@@ -1,11 +1,18 @@
 """
 EnvForge application settings.
-All configuration is sourced from environment variables or .env file.
+
+All configuration is sourced from environment variables or a local `.env` file.
+`load_dotenv()` is invoked here so any code path that imports `app.config`
+(FastAPI, Alembic migrations, the seed service, ad-hoc `python -m ...` scripts)
+shares the same env-loading bootstrap before `Settings` is read.
 """
 from functools import lru_cache
 from typing import Literal
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -19,14 +26,12 @@ class Settings(BaseSettings):
     # ── Application ───────────────────────────────────────────
     environment: Literal["development", "staging", "production"] = "development"
     debug: bool = False
-    secret_key: str = "change_me"
+    secret_key: str
     app_name: str = "EnvForge API"
     app_version: str = "0.1.0"
 
     # ── Database ──────────────────────────────────────────────
-    database_url: str = (
-        "postgresql+asyncpg://envforge:envforge_dev_secret@localhost:5432/envforge"
-    )
+    database_url: str
 
     # ── Redis ─────────────────────────────────────────────────
     # If set, the rate limiter will use Redis instead of in-memory storage.
@@ -60,8 +65,6 @@ class Settings(BaseSettings):
     rate_limit_ai_rpm: int = 10       # AI troubleshoot: requests per minute
     rate_limit_repair_rpm: int = 20   # Repair endpoint: requests per minute
     rate_limit_general_rpm: int = 60  # General API: requests per minute
-    
-    redis_url: str | None = None
 
 
 @lru_cache
