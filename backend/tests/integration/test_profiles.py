@@ -1,6 +1,5 @@
 import pytest
-from httpx import AsyncClient
-from httpx._transports.asgi import ASGITransport
+from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.database import get_db
 from app.models.profile import EnvironmentProfile, ProfilePackage
