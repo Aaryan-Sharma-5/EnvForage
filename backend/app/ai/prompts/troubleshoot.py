@@ -4,7 +4,6 @@ The builder takes structured data (DiagnosticReport, profile info, user
 description) and produces a safe, optimised user-message for the LLM.
 All sensitive data is sanitised and token budgets are respected.
 """
-import json
 from typing import Any
 
 from app.ai.models import TroubleshootRequest

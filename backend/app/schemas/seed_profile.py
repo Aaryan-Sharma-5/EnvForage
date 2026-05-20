@@ -57,3 +57,9 @@ class ProfilesYamlSchema(BaseModel):
     """Root structure of profiles.yaml."""
 
     profiles: list[ProfileSeedSchema]
+
+class GenerationRequest(BaseModel):
+    """Schema for validating a generation request payload."""
+    target_os: Literal["Linux", "Windows", "WSL"]
+    framework: str = Field(..., min_length=1, max_length=64)
+    cuda_version: str = Field(..., min_length=1, max_length=16)

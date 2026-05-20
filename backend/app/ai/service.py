@@ -11,15 +11,13 @@ import hashlib
 import logging
 import time
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any, AsyncIterator
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.models import (
-    LLMResponseMeta,
-    SuggestedFix,
     TroubleshootRequest,
     TroubleshootResponse,
 )
@@ -77,7 +75,7 @@ class AITroubleshootService:
         history = None
         if request.session_id:
             history = await self._fetch_session_history(db, request.session_id)
-            
+
         user_message = self._prompt_builder.build(request, history=history)
         logger.info("Troubleshoot prompt built (%d chars)", len(user_message))
 
@@ -161,7 +159,6 @@ class AITroubleshootService:
     ) -> AsyncIterator[str]:
         """
         Stream the AI troubleshooting response.
-        
         This method skips database persistence for individual tokens to
         minimize latency, but still builds the full prompt and uses the
         configured LLM provider in streaming mode.
@@ -172,9 +169,9 @@ class AITroubleshootService:
 
         user_message = self._prompt_builder.build(request, history=history)
         provider = get_provider()
-        
+
         logger.info("Starting troubleshoot stream (provider=%s)", type(provider).__name__)
-        
+
         async for chunk in provider.stream(
             system_prompt=TROUBLESHOOT_SYSTEM_PROMPT,
             user_message=user_message,

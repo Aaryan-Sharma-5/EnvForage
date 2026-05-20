@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     environment: Literal["development", "staging", "production"] = "development"
     debug: bool = False
     secret_key: str
-    app_name: str = "EnvForge API"
+    app_name: str = "EnvForage"
     app_version: str = "0.1.0"
 
     # ── Database ──────────────────────────────────────────────

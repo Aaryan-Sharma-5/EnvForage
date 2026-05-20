@@ -1,6 +1,7 @@
 import json
 import logging
-from typing import AsyncIterator, TypeVar
+from collections.abc import AsyncIterator
+from typing import TypeVar
 
 import httpx
 from pydantic import BaseModel

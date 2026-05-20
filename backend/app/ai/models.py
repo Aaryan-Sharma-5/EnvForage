@@ -1,7 +1,7 @@
 """AI Layer — Pydantic models for structured troubleshoot requests and responses."""
 from typing import Any, Literal
-from pydantic import BaseModel, Field
 
+from pydantic import BaseModel, Field
 
 # ── Request Models ────────────────────────────────────────────────────────────
 

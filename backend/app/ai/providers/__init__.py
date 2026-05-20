@@ -41,7 +41,7 @@ def get_provider() -> LLMProvider:
         # Safely extract dynamic configuration values from environment context settings
         api_key = getattr(settings, "openai_api_key", None)
         base_url = getattr(settings, "openai_base_url", "https://api.openai.com/v1")
-        
+
         return OpenAIProvider(
             api_key=api_key,
             base_url=base_url

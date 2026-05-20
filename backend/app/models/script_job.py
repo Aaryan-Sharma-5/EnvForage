@@ -30,7 +30,7 @@ class ScriptGenerationJob(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Relationships
-    profile: Mapped["EnvironmentProfile"] = relationship(  # type: ignore[name-defined]
+    profile: Mapped["EnvironmentProfile"] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "EnvironmentProfile", back_populates="generation_jobs"
     )
     scripts: Mapped[list["GeneratedScript"]] = relationship(

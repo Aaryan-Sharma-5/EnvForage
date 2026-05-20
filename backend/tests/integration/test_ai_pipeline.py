@@ -8,7 +8,7 @@ template-driven repair pipeline that runs AFTER the AI suggests a fix.
 """
 import pytest
 
-from app.ai.models import TroubleshootRequest, SuggestedFix
+from app.ai.models import SuggestedFix, TroubleshootRequest
 from app.ai.prompts.system import AVAILABLE_REPAIR_TEMPLATES
 from app.ai.prompts.troubleshoot import TroubleshootPromptBuilder
 from app.services.repair_service import RepairService, RepairTemplateNotFoundError

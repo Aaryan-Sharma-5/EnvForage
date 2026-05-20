@@ -410,7 +410,11 @@ def _print_verification_summary(data: dict, is_gpu_profile: bool) -> None:
     show_default=True,
     envvar="ENVFORGE_API_URL",
 )
-def fix(report: str, profile: str, api_url: str) -> None:
+@click.option(
+    "--dry-run", is_flag=True, default=False,
+    help="Preview the names of the scripts and resolved packages without printing their full contents.",
+)
+def fix(report: str, profile: str, api_url: str, dry_run: bool) -> None:
     """
     Generate a repair script based on a saved diagnostic report.
 
@@ -444,13 +448,22 @@ def fix(report: str, profile: str, api_url: str) -> None:
         result = response.json()
 
         console.print(f"[green]✓[/] Scripts generated (job: {result.get('job_id', '?')})")
-        for script in result.get("scripts", []):
-            console.print(
-                Panel(
-                    Syntax(script["content"], "bash", theme="monokai", line_numbers=True),
-                    title=f"[bold]{script['filename']}[/]",
+        
+        if result.get("resolved_packages"):
+            console.print(f"  [cyan]Resolved Packages:[/] {', '.join(result['resolved_packages'])}")
+            
+        if dry_run:
+            console.print("\n[bold]Files to be generated:[/]")
+            for script in result.get("scripts", []):
+                console.print(f"  • {script['filename']}")
+        else:
+            for script in result.get("scripts", []):
+                console.print(
+                    Panel(
+                        Syntax(script["content"], "bash", theme="monokai", line_numbers=True),
+                        title=f"[bold]{script['filename']}[/]",
+                    )
                 )
-            )
 
         download_url = f"{api_url.rstrip('/')}{result.get('download_url', '')}"
         console.print(f"\n  Download all: [link={download_url}]{download_url}[/link]")

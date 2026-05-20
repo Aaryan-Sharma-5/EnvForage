@@ -1,5 +1,4 @@
 """Pydantic schemas for diagnostic reports."""
-from typing import Any
 
 from pydantic import BaseModel, Field
 

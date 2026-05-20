@@ -5,8 +5,6 @@ from datetime import datetime
 from fastapi import APIRouter
 
 from app.api.deps import DB
-from app.models.diagnostic import DiagnosticReport
-from app.schemas.diagnostic import CompatibilityIssue, DiagnoseResponse, DiagnosticReportSchema
 from app.compatibility.errors import (
     IncompatibilityError,
     UnknownVersionError,
@@ -14,6 +12,12 @@ from app.compatibility.errors import (
 )
 from app.compatibility.models import PackageConstraint
 from app.compatibility.resolver import CompatibilityResolver
+from app.models.diagnostic import DiagnosticReport
+from app.schemas.diagnostic import (
+    CompatibilityIssue,
+    DiagnoseResponse,
+    DiagnosticReportSchema,
+)
 from app.schemas.profile import ProfileFilters
 from app.services.profile_service import list_profiles
 

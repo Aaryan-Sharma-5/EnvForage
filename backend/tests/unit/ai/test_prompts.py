@@ -4,7 +4,6 @@ import pytest
 from app.ai.models import TroubleshootRequest
 from app.ai.prompts.troubleshoot import TroubleshootPromptBuilder
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture

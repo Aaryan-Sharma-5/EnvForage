@@ -6,7 +6,11 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import DB
-from app.compatibility.errors import IncompatibilityError, UnknownVersionError, UnsupportedOSError
+from app.compatibility.errors import (
+    IncompatibilityError,
+    UnknownVersionError,
+    UnsupportedOSError,
+)
 from app.schemas.script import GenerationRequest, GenerationResponse
 from app.services import profile_service, script_service
 
@@ -79,9 +83,11 @@ async def download_scripts(job_id: str, db: DB) -> StreamingResponse:
     """
     Download a generated script bundle as a ZIP file.
     """
-    from sqlalchemy import select
-    from app.models.script_job import GeneratedScript, ScriptGenerationJob
     import uuid
+
+    from sqlalchemy import select
+
+    from app.models.script_job import ScriptGenerationJob
 
     try:
         job_uuid = uuid.UUID(job_id)

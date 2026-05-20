@@ -1,0 +1,19 @@
+# ==============================================================================
+# EnvForge Generated pyproject.toml
+# Profile  : {{ profile.name }}
+# Python   : {{ python_version }}
+{% if cuda_version %}# CUDA     : {{ cuda_version }}
+{% endif %}# Generated: {{ generated_at }}
+# EnvForge : v{{ envforge_version }}
+# ==============================================================================
+
+[project]
+name = "envforge-generated"
+version = "0.1.0"
+description = "Generated dependencies for {{ profile.name }}"
+requires-python = ">= {{ python_version }}"
+dependencies = [
+{% for pkg in packages %}
+    "{{ pkg.pip_spec }}",
+{% endfor %}
+]

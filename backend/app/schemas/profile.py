@@ -1,10 +1,8 @@
 """Pydantic schemas for environment profiles API."""
 import uuid
 from datetime import date, datetime
-from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 # ── Package schemas ────────────────────────────────────────────────────────────
 

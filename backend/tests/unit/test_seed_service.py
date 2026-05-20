@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
-from backend.schemas.seed import GenerationRequest
+
+from app.schemas.seed_profile import GenerationRequest
+
 
 def test_valid_payload_parsing():
     data = {
@@ -48,4 +50,4 @@ def test_generation_request_empty_payload():
     """Requirement 3: Ensures an empty payload raises a ValidationError gracefully"""
     with pytest.raises(ValidationError):
         GenerationRequest(**{})
-        
+

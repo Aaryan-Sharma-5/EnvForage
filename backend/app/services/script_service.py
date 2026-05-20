@@ -6,12 +6,16 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.compatibility.errors import IncompatibilityError
 from app.compatibility.models import PackageConstraint
 from app.compatibility.resolver import CompatibilityResolver
 from app.models.profile import EnvironmentProfile
 from app.models.script_job import GeneratedScript, ScriptGenerationJob
-from app.schemas.script import GenerationRequest, GenerationResponse, ResolvedPackage, ScriptPreview
+from app.schemas.script import (
+    GenerationRequest,
+    GenerationResponse,
+    ResolvedPackage,
+    ScriptPreview,
+)
 from app.templates.engine import TemplateRenderer
 from app.templates.models import TemplateContext
 

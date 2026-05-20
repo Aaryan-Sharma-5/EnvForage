@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from app.compatibility.models import ResolvedEnvironment, OSTarget
+from app.compatibility.models import ResolvedEnvironment
 
 
 @dataclass

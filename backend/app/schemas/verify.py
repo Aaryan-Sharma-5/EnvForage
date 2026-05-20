@@ -1,6 +1,5 @@
 """Pydantic schemas for environment verification."""
 import uuid
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,7 +8,7 @@ class VerificationCheckSchema(BaseModel):
     """Schema for a single verification check result."""
     check_name: str
     passed: bool
-    detail: Optional[str] = None
+    detail: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -17,7 +16,7 @@ class VerificationCheckSchema(BaseModel):
 class VerificationRequest(BaseModel):
     """Request schema for POST /api/v1/verify."""
     profile_id: uuid.UUID
-    report_id: Optional[uuid.UUID] = None
+    report_id: uuid.UUID | None = None
     raw_output: str
 
 
@@ -26,6 +25,6 @@ class VerificationResponse(BaseModel):
     result_id: uuid.UUID
     profile_id: uuid.UUID
     overall_status: str = Field(..., description="Either 'passed' or 'failed'")
-    checks: List[VerificationCheckSchema]
+    checks: list[VerificationCheckSchema]
 
     model_config = ConfigDict(from_attributes=True)

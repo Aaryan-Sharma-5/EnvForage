@@ -1,11 +1,13 @@
 """Mock LLM provider for testing — returns deterministic responses."""
-from typing import AsyncIterator, TypeVar
-from pydantic import BaseModel
-from app.ai.providers.base import LLMProvider
-from app.ai.models import SuggestedFix, TroubleshootResponse
-import uuid
-import json
 import asyncio
+import uuid
+from collections.abc import AsyncIterator
+from typing import TypeVar
+
+from pydantic import BaseModel
+
+from app.ai.models import SuggestedFix, TroubleshootResponse
+from app.ai.providers.base import LLMProvider
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -54,7 +56,7 @@ class MockProvider(LLMProvider):
         """Simulate streaming by yielding chunks of the mocked JSON response."""
         response = await self.complete(system_prompt, user_message, response_model)
         full_json = response.model_dump_json()
-        
+
         # Yield in small chunks to simulate network/LLM latency
         chunk_size = 20
         for i in range(0, len(full_json), chunk_size):

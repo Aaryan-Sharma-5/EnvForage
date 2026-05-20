@@ -1,13 +1,12 @@
 """Tests for AI Pydantic models."""
 import pytest
-
 from pydantic import ValidationError
 
 from app.ai.models import (
+    LLMResponseMeta,
+    SuggestedFix,
     TroubleshootRequest,
     TroubleshootResponse,
-    SuggestedFix,
-    LLMResponseMeta,
 )
 
 

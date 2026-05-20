@@ -16,10 +16,6 @@ os.environ.setdefault(
 )
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
-from sqlalchemy.sql.expression import BinaryExpression
-from sqlalchemy import event
 from app.database import Base
 
 # 1. Compile postgresql.ARRAY and JSONB to TEXT/JSON on SQLite

@@ -1,7 +1,7 @@
 """Tests for system prompt constants and integrity."""
 from app.ai.prompts.system import (
-    TROUBLESHOOT_SYSTEM_PROMPT,
     AVAILABLE_REPAIR_TEMPLATES,
+    TROUBLESHOOT_SYSTEM_PROMPT,
 )
 from app.services.repair_service import REPAIR_TEMPLATE_MAP
 

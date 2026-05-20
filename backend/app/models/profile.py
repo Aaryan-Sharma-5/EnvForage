@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.script_job import ScriptGenerationJob
 
 
 class EnvironmentProfile(Base):
@@ -51,7 +52,7 @@ class EnvironmentProfile(Base):
     packages: Mapped[list["ProfilePackage"]] = relationship(
         "ProfilePackage", back_populates="profile", cascade="all, delete-orphan"
     )
-    generation_jobs: Mapped[list["ScriptGenerationJob"]] = relationship(
+    generation_jobs: Mapped[list["ScriptGenerationJob"]] = relationship(  # noqa: F821
         "ScriptGenerationJob", back_populates="profile"
     )
 

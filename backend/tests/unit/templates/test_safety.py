@@ -1,5 +1,6 @@
 """Unit tests for the Template Engine safety filter."""
 import pytest
+
 from app.templates.safety import SafetyViolationError, validate_rendered_output
 
 SAFE_CONTENT = """#!/bin/bash

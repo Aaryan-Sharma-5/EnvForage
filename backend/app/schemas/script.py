@@ -4,9 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 OSTarget = Literal["LINUX", "WSL", "WIN"]
-OutputFormat = Literal["setup.sh", "setup.ps1", "requirements.txt", "Dockerfile", "devcontainer.json"]
+OutputFormat = Literal["setup.sh", "setup.ps1", "requirements.txt", "Dockerfile", "devcontainer.json", "pyproject.toml"]
 
 
 class GenerationRequest(BaseModel):

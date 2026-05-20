@@ -6,9 +6,8 @@ from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
-from app.api.v1 import profiles, scripts, diagnose, troubleshoot, repair, verify
+from app.api.v1 import diagnose, profiles, repair, scripts, troubleshoot, verify
 from app.config import get_settings
 
 

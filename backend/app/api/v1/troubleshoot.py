@@ -4,7 +4,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.ai.models import TroubleshootRequest, TroubleshootResponse
+from app.ai.models import TroubleshootRequest
 from app.ai.providers.base import LLMProviderError
 from app.ai.service import AITroubleshootService
 from app.api.deps import DB
@@ -47,7 +47,7 @@ async def troubleshoot(
                 async for chunk in _service.stream_troubleshoot(request, db):
                     # Format as standard SSE
                     yield f"data: {chunk}\n\n"
-            except Exception as exc:
+            except Exception:
                 logger.exception("Error in troubleshoot stream generator")
                 yield "data: {\"error\": \"STREAM_ERROR\", \"message\": \"An internal error occurred while streaming analysis.\"}\n\n"
 

@@ -15,7 +15,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from app.ai.prompts.system import AVAILABLE_REPAIR_TEMPLATES
-from app.templates.safety import SafetyViolationError, validate_rendered_output
+from app.templates.safety import validate_rendered_output
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,12 @@ Unit tests for the Compatibility Resolver.
 No mocks for matrix data — the matrix IS the ground truth.
 """
 import pytest
-from app.compatibility.errors import IncompatibilityError, UnsupportedOSError, UnknownVersionError
+
+from app.compatibility.errors import (
+    IncompatibilityError,
+    UnknownVersionError,
+    UnsupportedOSError,
+)
 from app.compatibility.models import PackageConstraint
 from app.compatibility.resolver import CompatibilityResolver
 
@@ -139,3 +144,27 @@ def test_jax_unknown_version_returns_empty():
     from app.compatibility.matrix.cuda import get_supported_cuda_for_framework
     cuda_versions = get_supported_cuda_for_framework("jax", "0.0.0")
     assert cuda_versions == []
+
+def test_cuda_125_in_matrix():
+    """CUDA 12.5 must be recognized in the matrix."""
+    from app.compatibility.matrix.cuda import get_cuda_entry
+    entry = get_cuda_entry("12.5")
+    assert entry is not None
+    assert entry.min_driver_linux == "555.42.02"
+    assert entry.min_driver_windows == "555.85"
+
+
+def test_cuda_126_in_matrix():
+    """CUDA 12.6 must be recognized in the matrix."""
+    from app.compatibility.matrix.cuda import get_cuda_entry
+    entry = get_cuda_entry("12.6")
+    assert entry is not None
+    assert entry.min_driver_linux == "560.35.03"
+    assert entry.min_driver_windows == "560.94"
+
+
+def test_cuda_125_126_in_supported_versions():
+    """12.5 and 12.6 must appear in SUPPORTED_CUDA_VERSIONS."""
+    from app.compatibility.matrix.cuda import SUPPORTED_CUDA_VERSIONS
+    assert "12.5" in SUPPORTED_CUDA_VERSIONS
+    assert "12.6" in SUPPORTED_CUDA_VERSIONS

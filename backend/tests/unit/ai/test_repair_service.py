@@ -2,9 +2,9 @@
 import pytest
 
 from app.services.repair_service import (
+    REPAIR_TEMPLATE_MAP,
     RepairService,
     RepairTemplateNotFoundError,
-    REPAIR_TEMPLATE_MAP,
 )
 
 

@@ -26,17 +26,15 @@ from app.compatibility.errors import (
 from app.compatibility.matrix.cuda import (
     CUDA_MATRIX,
     get_cuda_entry,
-    get_supported_cuda_for_framework,
+)
+from app.compatibility.matrix.os_rules import get_os_notes
+from app.compatibility.matrix.python import (
+    get_framework_entry,
+    get_latest_compatible_version,
 )
 from app.compatibility.matrix.rocm import (
     ROCM_MATRIX,
     get_rocm_entry,
-    get_supported_rocm_for_framework,
-)
-from app.compatibility.matrix.os_rules import get_os_notes, validate_output_format
-from app.compatibility.matrix.python import (
-    get_framework_entry,
-    get_latest_compatible_version,
 )
 from app.compatibility.models import (
     OSTarget,

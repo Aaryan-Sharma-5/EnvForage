@@ -9,7 +9,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from app.templates.models import RenderResult, TemplateContext
-from app.templates.safety import SafetyViolationError, validate_rendered_output
+from app.templates.safety import validate_rendered_output
 
 # ── Template directory ─────────────────────────────────────────────────────────
 TEMPLATES_DIR = Path(__file__).parent / "jinja"
@@ -25,7 +25,8 @@ TEMPLATE_MAP: dict[str, str] = {
     "verify_torch.sh":    "verify/verify_torch.sh.j2",
     "verify_tf.sh":       "verify/verify_tf.sh.j2",
     "verify_opencv.sh":   "verify/verify_opencv.sh.j2",
-    "environment.yml":      "config/environment.yml.j2",
+    "environment.yml":    "config/environment.yml.j2",
+    "pyproject.toml":     "config/pyproject.toml.j2",
 }
 
 # ── Profile-specific verify template mapping ───────────────────────────────────
