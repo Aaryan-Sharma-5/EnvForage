@@ -77,13 +77,13 @@ class OllamaProvider(LLMProvider):
                         "ollama",
                         f"LLM response was not valid JSON: {raw_text[:200]}... "
                         f"Error: {str(e)}",
-                    )
+                    )from e
                 except ValueError as e:
                     raise LLMProviderError(
                         "ollama",
                         f"Response JSON did not match {response_model.__name__} schema. "
                         f"Error: {str(e)}",
-                    )
+                    )from e
 
         except httpx.ConnectError:
             raise LLMProviderError(
@@ -97,11 +97,13 @@ class OllamaProvider(LLMProvider):
                 f"Ollama API returned status {e.response.status_code}: "
                 f"{e.response.text[:200]}",
             )
+        except LLMProviderError:
+         raise
         except Exception as e:
             raise LLMProviderError(
                 "ollama",
                 f"Unexpected error during Ollama inference: {str(e)}",
-            )
+            ) from e
 
     async def stream(
         self,
@@ -147,8 +149,10 @@ class OllamaProvider(LLMProvider):
                 "ollama",
                 f"Ollama streaming request failed with status {e.response.status_code}",
             )
+        except LLMProviderError:
+            raise
         except Exception as e:
             raise LLMProviderError(
                 "ollama",
                 f"Unexpected error during Ollama streaming: {str(e)}",
-            )
+            ) from e

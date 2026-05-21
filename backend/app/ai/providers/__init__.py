@@ -10,7 +10,7 @@ def get_provider() -> LLMProvider:
         - ``mock``       → deterministic responses for testing
         - ``openrouter`` → routes to 100+ models via OpenRouter API
         - ``openai``     → direct OpenAI API
-        - ``ollama``     → local inference (not yet implemented)
+        - ``ollama``     → local inference (air gapped, implemented)
 
     Returns:
         An instance of a class implementing :class:`LLMProvider`.
