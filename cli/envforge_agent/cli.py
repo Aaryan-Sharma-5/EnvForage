@@ -123,8 +123,13 @@ def _print_report_summary(report: DiagnosticReport) -> None:
         table.add_row("WSL", report.os.wsl_version)
 
     table.add_row("CPU", f"{report.cpu.brand} — {report.cpu.cores}C / {report.cpu.threads}T")
-    table.add_row("RAM", f"{report.ram.total_gb} GB total, {report.ram.available_gb} GB free")
-
+    ram_str = f"{report.ram.total_gb} GB total, {report.ram.available_gb} GB free"
+    if report.ram.total_gb < 8:
+        ram_str += "  [bold red]⚠ CRITICAL: Under 8 GB — heavy ML profiles will fail[/]"
+    elif report.ram.total_gb < 16:
+        ram_str += "  [yellow]⚠ WARNING: Under 16 GB — some ML profiles may be slow[/]"
+    table.add_row("RAM", ram_str)
+    
     if report.gpus:
         for gpu in report.gpus:
             vram = f"{gpu.vram_gb} GB" if gpu.vram_gb else "?"
