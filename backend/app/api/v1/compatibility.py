@@ -3,6 +3,7 @@ Compatibility Matrix API endpoints.
 Exposes CUDA, ROCm, and Python compatibility matrices as read-only REST endpoints.
 Resolves Issue #85.
 """
+from dataclasses import asdict
 from fastapi import APIRouter, HTTPException
 from app.compatibility.matrix.cuda import (
     CUDA_MATRIX,
@@ -62,7 +63,7 @@ async def get_cuda_matrix() -> dict:
         "matrix": "cuda",
         "count": len(CUDA_MATRIX),
         "supported_versions": SUPPORTED_CUDA_VERSIONS,
-        "data": {version: entry.model_dump() for version, entry in CUDA_MATRIX.items()},
+        "data": {version: asdict(entry) for version, entry in CUDA_MATRIX.items()},
     }
 
 @router.get("/cuda/frameworks", summary="List framework → CUDA version support map")
@@ -94,7 +95,7 @@ async def get_cuda_version(cuda_version: str) -> dict:
                 }
             },
         )
-    return {"cuda_version": cuda_version, **entry.model_dump()}
+    return {"cuda_version": cuda_version, **asdict(entry)}
 
 # ── ROCm ──────────────────────────────────────────────────────────────────────
 
@@ -109,7 +110,7 @@ async def get_rocm_matrix() -> dict:
         "matrix": "rocm",
         "count": len(ROCM_MATRIX),
         "supported_versions": SUPPORTED_ROCM_VERSIONS,
-        "data": {version: entry.model_dump() for version, entry in ROCM_MATRIX.items()},
+        "data": {version: asdict(entry) for version, entry in ROCM_MATRIX.items()},
     }
 
 @router.get("/rocm/frameworks", summary="List framework → ROCm version support map")
@@ -141,7 +142,7 @@ async def get_rocm_version(rocm_version: str) -> dict:
                 }
             },
         )
-    return {"rocm_version": rocm_version, **entry.model_dump()}
+    return {"rocm_version": rocm_version, **asdict(entry)}
 
 # ── Python ────────────────────────────────────────────────────────────────────
 
@@ -156,7 +157,7 @@ async def get_python_matrix() -> dict:
         "matrix": "python",
         "supported_frameworks": sorted(PYTHON_MATRIX.keys()),
         "data": {
-            framework: [entry.model_dump() for entry in entries]
+            framework: [asdict(entry) for entry in entries]
             for framework, entries in PYTHON_MATRIX.items()
         },
     }
@@ -182,7 +183,7 @@ async def get_python_framework(framework: str) -> dict:
     return {
         "framework": framework,
         "count": len(entries),
-        "data": [entry.model_dump() for entry in entries],
+        "data": [asdict(entry) for entry in entries],
     }
 
 @router.get("/python/{framework}/{version}", summary="Get Python compatibility for a specific framework version")
@@ -206,7 +207,7 @@ async def get_python_framework_version(framework: str, version: str) -> dict:
         )
     for entry in entries:
         if entry.version == version:
-            return {"framework": framework, "version": version, **entry.model_dump()}
+            return {"framework": framework, "version": version, **asdict(entry)}
     raise HTTPException(
         status_code=404,
         detail={
