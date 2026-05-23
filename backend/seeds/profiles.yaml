@@ -194,3 +194,81 @@ profiles:
       - name: scipy
         version_spec: "1.13.0"
         install_order: 7
+  - slug: jax-cuda
+    name: "JAX CUDA"
+    description: >
+      Google JAX with CUDA GPU acceleration for high-performance numerical
+      computing and machine learning research. Includes Flax and Optax for
+      neural network building and optimization. Requires CUDA 12.1 and
+      cuDNN 8.9+. 8GB+ VRAM recommended for large workloads.
+    tags: [deep-learning, gpu, cuda, jax, numerical-computing]
+    os_support: [LINUX, WSL]
+    cuda_required: true
+    python_versions: ["3.10", "3.11"]
+    cuda_versions: ["12.1"]
+    status: ACTIVE
+    last_validated: "2025-01-01"
+    packages:
+      - name: jax[cuda12]
+        version_spec: "0.4.26"
+        cuda_variant: "cu121"
+        install_order: 0
+      - name: jaxlib
+        version_spec: "0.4.26"
+        cuda_variant: "cu121"
+        install_order: 1
+      - name: flax
+        version_spec: "0.8.4"
+        install_order: 2
+      - name: optax
+        version_spec: "0.2.2"
+        install_order: 3
+      - name: numpy
+        version_spec: "1.26.4"
+        install_order: 4
+      - name: matplotlib
+        version_spec: "3.8.4"
+        install_order: 5
+      - name: scipy
+        version_spec: "1.13.0"
+        install_order: 6
+
+  - slug: tensorrt
+    name: "TensorRT Inference"
+    description: >
+      NVIDIA TensorRT environment for high-performance deep learning inference
+      optimization. Converts and accelerates trained models (ONNX, PyTorch)
+      for production deployment on NVIDIA GPUs. Requires CUDA 12.1 and a
+      compatible NVIDIA GPU with 6GB+ VRAM. TensorRT 10.x is only supported
+      on Linux and WSL2.
+    tags: [inference, optimization, tensorrt, gpu, cuda, onnx]
+    os_support: [LINUX, WSL]
+    cuda_required: true
+    python_versions: ["3.10", "3.11"]
+    cuda_versions: ["12.1"]
+    status: ACTIVE
+    last_validated: "2025-01-01"
+    packages:
+      - name: tensorrt
+        version_spec: "10.0.1"
+        cuda_variant: "cu121"
+        install_order: 0
+      - name: torch
+        version_spec: "2.1.2"
+        cuda_variant: "cu121"
+        install_order: 1
+      - name: onnx
+        version_spec: "1.16.0"
+        install_order: 2
+      - name: onnxruntime-gpu
+        version_spec: "1.18.0"
+        install_order: 3
+      - name: cuda-python
+        version_spec: "12.1.0"
+        install_order: 4
+      - name: numpy
+        version_spec: "1.26.4"
+        install_order: 5
+      - name: Pillow
+        version_spec: "10.3.0"
+        install_order: 6
