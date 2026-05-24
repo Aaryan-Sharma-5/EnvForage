@@ -1,7 +1,7 @@
 """Pydantic schemas for script generation API."""
 
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -30,6 +30,10 @@ class GenerationRequest(BaseModel):
     output_formats: list[OutputFormat] = Field(
         default=["setup.sh", "requirements.txt"],
         min_length=1,
+    )
+    use_uv: bool = Field(
+        default=False,
+        description="Use uv instead of pip for package installation",
     )
 
 
@@ -62,5 +66,4 @@ class GenerationResponse(BaseModel):
 
 class GenerationErrorResponse(BaseModel):
     """Response when compatibility resolution fails."""
-
-    error: dict  # Structured IncompatibilityError details
+    error: dict[str, Any]  # Structured IncompatibilityError details

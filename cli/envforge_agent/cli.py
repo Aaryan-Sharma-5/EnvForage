@@ -25,6 +25,8 @@ from envforge_agent import __version__
 from envforge_agent.report import ReportBuilder
 from envforge_agent.schemas import DiagnosticReport
 
+from envforge_agent.utils import _map_os_to_target, _extract_python_version
+
 console = Console()
 err_console = Console(stderr=True, style="bold red")
 
@@ -102,7 +104,7 @@ def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: b
     if output:
         Path(output).write_text(report_json, encoding="utf-8")
         if not quiet:
-            console.print(f"\n[green]✓[/] Report saved to [bold]{output}[/]")
+            console.print(f"\n[green][+][/] Report saved to [bold]{output}[/]")
     elif not send:
         # Print JSON to stdout (pipe-friendly)
         click.echo(report_json)
@@ -122,12 +124,16 @@ def _print_report_summary(report: DiagnosticReport) -> None:
     if report.os.wsl_version:
         table.add_row("WSL", report.os.wsl_version)
 
-    table.add_row("CPU", f"{report.cpu.brand} — {report.cpu.cores}C / {report.cpu.threads}T")
+    cpu_str = f"{report.cpu.brand} — {report.cpu.cores}C / {report.cpu.threads}T"
+    if report.cpu.cores < 4:
+        cpu_str += "  [yellow]⚠ WARNING: Under 4 cores — data loading may bottleneck training[/]"
+    table.add_row("CPU", cpu_str)
+    
     ram_str = f"{report.ram.total_gb} GB total, {report.ram.available_gb} GB free"
     if report.ram.total_gb < 8:
-        ram_str += "  [bold red]⚠ CRITICAL: Under 8 GB — heavy ML profiles will fail[/]"
+        ram_str += "  [bold red][!] CRITICAL: Under 8 GB — heavy ML profiles will fail[/]"
     elif report.ram.total_gb < 16:
-        ram_str += "  [yellow]⚠ WARNING: Under 16 GB — some ML profiles may be slow[/]"
+        ram_str += "  [yellow][!] WARNING: Under 16 GB — some ML profiles may be slow[/]"
     table.add_row("RAM", ram_str)
     
     if report.gpus:
@@ -202,7 +208,7 @@ def _send_report(report: DiagnosticReport, api_url: str, quiet: bool) -> None:
 
 def _print_diagnose_response(result: dict) -> None:
     """Pretty-print the API diagnose response."""
-    console.print("\n[bold green]✓ Compatibility Analysis[/]")
+    console.print("\n[bold green][+] Compatibility Analysis[/]")
 
     if result.get("compatible_profiles"):
         console.print(f"  Compatible profiles: {', '.join(result['compatible_profiles'])}")
@@ -210,7 +216,7 @@ def _print_diagnose_response(result: dict) -> None:
     if result.get("recommendations"):
         console.print("\n[bold]Recommendations:[/]")
         for rec in result["recommendations"]:
-            console.print(f"  • {rec}")
+            console.print(f"  - {rec}")
 
     if result.get("issues"):
         console.print("\n[bold yellow]Issues:[/]")
@@ -392,7 +398,7 @@ def _print_verification_summary(data: dict, is_gpu_profile: bool) -> None:
 
     table.add_row("Required CUDA Profile", "[dim]INFO[/]", ">= 11.8 (Recommended for CUDA paths)")
     
-    console.print("\n[bold]📊 Verification Report:[/]")
+    console.print("\n[bold]=== Verification Report ===[/]")
     console.print(table)
 
 # ── envforge fix ───────────────────────────────────────────────────────────────
@@ -452,7 +458,7 @@ def fix(report: str, profile: str, api_url: str, dry_run: bool) -> None:
         response.raise_for_status()
         result = response.json()
 
-        console.print(f"[green]✓[/] Scripts generated (job: {result.get('job_id', '?')})")
+        console.print(f"[green][+][/] Scripts generated (job: {result.get('job_id', '?')})")
         
         if result.get("resolved_packages"):
             console.print(f"  [cyan]Resolved Packages:[/] {', '.join(result['resolved_packages'])}")
@@ -460,7 +466,7 @@ def fix(report: str, profile: str, api_url: str, dry_run: bool) -> None:
         if dry_run:
             console.print("\n[bold]Files to be generated:[/]")
             for script in result.get("scripts", []):
-                console.print(f"  • {script['filename']}")
+                console.print(f"  - {script['filename']}")
         else:
             for script in result.get("scripts", []):
                 console.print(
@@ -481,16 +487,3 @@ def fix(report: str, profile: str, api_url: str, dry_run: bool) -> None:
         sys.exit(1)
 
 
-def _map_os_to_target(report: DiagnosticReport) -> str:
-    if report.os.wsl_version:
-        return "WSL"
-    if "windows" in report.os.name.lower():
-        return "WIN"
-    return "LINUX"
-
-
-def _extract_python_version(report: DiagnosticReport) -> str:
-    if report.active_python:
-        parts = report.active_python.version.split(".")
-        return f"{parts[0]}.{parts[1]}"
-    return "3.11"  # safe default
