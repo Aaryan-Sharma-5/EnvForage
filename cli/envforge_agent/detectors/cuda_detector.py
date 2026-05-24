@@ -23,13 +23,13 @@ from pathlib import Path
 from envforge_agent.schemas import CUDAInfo
 
 
-def detect_cuda() -> CUDAInfo:
+def detect_cuda(timeout: int = 30) -> CUDAInfo:
     """
     Detect CUDA installation details.
     Returns CUDAInfo with all None fields if CUDA is not installed.
     Never raises.
     """
-    version = _detect_cuda_version()
+    version = _detect_cuda_version(timeout=timeout)
     toolkit_path = _detect_toolkit_path(version)
     cudnn_version = _detect_cudnn(toolkit_path)
     nccl_version = _detect_nccl(toolkit_path)
@@ -44,9 +44,9 @@ def detect_cuda() -> CUDAInfo:
 
 # ── CUDA version ──────────────────────────────────────────────────────────────
 
-def _detect_cuda_version() -> str | None:
+def _detect_cuda_version(timeout: int = 30) -> str | None:
     # Method 1: nvcc --version (most reliable — requires CUDA toolkit installed)
-    version = _nvcc_version()
+    version = _nvcc_version(timeout=timeout)
     if version:
         return version
 
@@ -61,19 +61,19 @@ def _detect_cuda_version() -> str | None:
         return version
 
     # Method 4: nvidia-smi CUDA version (driver-level, may differ from toolkit)
-    version = _nvidia_smi_cuda_version()
+    version = _nvidia_smi_cuda_version(timeout=timeout)
     if version:
         return version
 
     return None
 
 
-def _nvcc_version() -> str | None:
+def _nvcc_version(timeout: int = 30) -> str | None:
     """Parse CUDA version from `nvcc --version`."""
     try:
         result = subprocess.run(
             ["nvcc", "--version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=timeout,
         )
         if result.returncode != 0:
             return None
@@ -125,13 +125,13 @@ def _cuda_path_env_version() -> str | None:
     return None
 
 
-def _nvidia_smi_cuda_version() -> str | None:
+def _nvidia_smi_cuda_version(timeout: int = 30) -> str | None:
     """Get CUDA version from nvidia-smi (driver-reported, not toolkit)."""
     # Method A: Try specific query-gpu first
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=cuda_version", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, timeout=timeout,
         )
         if result.returncode == 0:
             ver = result.stdout.strip().splitlines()[0].strip()

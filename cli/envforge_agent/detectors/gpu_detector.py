@@ -16,24 +16,24 @@ from envforge_agent.schemas import GPUInfo
 logger = logging.getLogger(__name__)
 
 
-def detect_gpus() -> list[GPUInfo]:
+def detect_gpus(timeout: int = 30) -> list[GPUInfo]:
     """
     Detect all GPUs (NVIDIA or AMD).
     """
     try:
-        gpus = _detect_via_nvidia_smi()
+        gpus = _detect_via_nvidia_smi(timeout=timeout)
         if gpus:
             return gpus
     except Exception:
         pass
 
     try:
-        return _detect_via_rocm_smi()
+        return _detect_via_rocm_smi(timeout=timeout)
     except Exception:
         return []
 
 
-def _detect_via_nvidia_smi() -> list[GPUInfo]:
+def _detect_via_nvidia_smi(timeout: int = 30) -> list[GPUInfo]:
     """
     Run nvidia-smi with CSV query and parse output.
 
@@ -103,7 +103,7 @@ def _detect_via_nvidia_smi() -> list[GPUInfo]:
     return gpus
 
 
-def _detect_via_rocm_smi() -> list[GPUInfo]:
+def _detect_via_rocm_smi(timeout: int = 30) -> list[GPUInfo]:
     """
     Run rocm-smi and parse JSON output.
     """
@@ -112,7 +112,7 @@ def _detect_via_rocm_smi() -> list[GPUInfo]:
             ["rocm-smi", "--showproductname", "--showvram", "--showdriverversion", "--json"],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=timeout,
         )
     except FileNotFoundError:
         return []

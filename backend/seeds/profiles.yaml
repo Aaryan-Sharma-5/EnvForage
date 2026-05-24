@@ -7,21 +7,21 @@ profiles:
     tags: [deep-learning, gpu, cuda, pytorch]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
-    last_validated: "2024-12-01"
+    last_validated: "2026-05-24"
     packages:
       - name: torch
-        version_spec: "2.1.2"
+        version_spec: "2.5.0"
         cuda_variant: "cu118"
         install_order: 0
       - name: torchvision
-        version_spec: "0.16.2"
+        version_spec: "0.20.0"
         cuda_variant: "cu118"
         install_order: 1
       - name: torchaudio
-        version_spec: "2.1.2"
+        version_spec: "2.5.0"
         cuda_variant: "cu118"
         install_order: 2
       - name: numpy
@@ -37,18 +37,18 @@ profiles:
   - slug: tf-gpu
     name: "TensorFlow GPU"
     description: >
-      TensorFlow with GPU acceleration via CUDA. Supports TF 2.13–2.15.
+      TensorFlow with GPU acceleration via CUDA. Supports TF 2.13–2.16.
       Note: TF 2.11+ requires WSL2 on Windows for GPU support.
     tags: [deep-learning, gpu, cuda, tensorflow]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
-    cuda_versions: ["11.8"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
+    cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
-    last_validated: "2024-12-01"
+    last_validated: "2026-05-24"
     packages:
       - name: tensorflow
-        version_spec: "2.14.0"
+        version_spec: "2.16.0"
         install_order: 0
       - name: numpy
         version_spec: "1.26.4"
@@ -68,20 +68,20 @@ profiles:
     tags: [computer-vision, object-detection, yolo, gpu]
     os_support: [LINUX, WSL, WIN]
     cuda_required: false
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
-    last_validated: "2024-12-01"
+    last_validated: "2026-05-24"
     packages:
       - name: ultralytics
-        version_spec: "8.2.0"
+        version_spec: "8.3.0"
         install_order: 0
       - name: torch
-        version_spec: "2.1.2"
+        version_spec: "2.5.0"
         install_order: 1
         is_optional: true
       - name: opencv-python
-        version_spec: "4.9.0.80"
+        version_spec: "4.10.0.84"
         install_order: 2
       - name: numpy
         version_spec: "1.26.4"
@@ -98,13 +98,13 @@ profiles:
     tags: [generative-ai, image-generation, diffusion, gpu]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
-    last_validated: "2024-12-01"
+    last_validated: "2026-05-24"
     packages:
       - name: torch
-        version_spec: "2.1.2"
+        version_spec: "2.5.0"
         cuda_variant: "cu118"
         install_order: 0
       - name: diffusers
@@ -134,13 +134,13 @@ profiles:
     tags: [computer-vision, opencv, beginner, cpu]
     os_support: [LINUX, WSL, WIN]
     cuda_required: false
-    python_versions: ["3.9", "3.10", "3.11"]
+    python_versions: ["3.9", "3.10", "3.11", "3.12"]
     cuda_versions: []
     status: ACTIVE
-    last_validated: "2024-12-01"
+    last_validated: "2026-05-24"
     packages:
       - name: opencv-python
-        version_spec: "4.9.0.80"
+        version_spec: "4.10.0.84"
         install_order: 0
       - name: numpy
         version_spec: "1.26.4"
@@ -164,13 +164,13 @@ profiles:
     tags: [llm, fine-tuning, peft, nlp, gpu]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
-    last_validated: "2024-12-01"
+    last_validated: "2026-05-24"
     packages:
       - name: torch
-        version_spec: "2.1.2"
+        version_spec: "2.5.0"
         cuda_variant: "cu118"
         install_order: 0
       - name: transformers

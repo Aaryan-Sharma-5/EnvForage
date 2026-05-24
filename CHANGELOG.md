@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **uv Package Manager Support:**
+  - Added `use_uv` boolean field to `GenerationRequest` schema — when `true`, generated scripts bootstrap and use `uv` instead of `pip` for significantly faster package installation.
+  - Updated `setup_windows.ps1.j2` to bootstrap `uv` via `Invoke-RestMethod` and conditionally use `uv pip install`.
+  - Updated `setup_linux.sh.j2` to bootstrap `uv` via `curl` and conditionally use `uv pip install` across all install paths (CUDA, non-CUDA, CPU-only).
+
 ## [1.0.0] - 2026-05-22
 
 ### Added

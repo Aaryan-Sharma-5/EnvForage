@@ -1,21 +1,21 @@
 """Pydantic schemas for script generation API."""
+
 import uuid
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 OSTarget = Literal["LINUX", "WSL", "WIN"]
-OutputFormat = Literal["setup.sh", "setup.ps1", "requirements.txt", "Dockerfile", "devcontainer.json", "pyproject.toml"]
+OutputFormat = Literal["setup.sh", "setup.ps1", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json", "pyproject.toml"]
 
 
 class GenerationRequest(BaseModel):
     """Request body for POST /scripts/generate."""
+
     profile_id: str = Field(..., description="Profile slug, e.g. 'pytorch-cuda'")
     target_os: OSTarget
     python_version: str = Field(..., pattern=r"^\d+\.\d+$", examples=["3.11"])
-    cuda_version: str | None = Field(
-        None, pattern=r"^\d+\.\d+$", examples=["12.1"]
-    )
+    cuda_version: str | None = Field(None, pattern=r"^\d+\.\d+$", examples=["12.1"])
     overrides: dict[str, str] = Field(
         default_factory=dict,
         description="Package version overrides, e.g. {'torch': '2.2.0'}",
@@ -23,6 +23,10 @@ class GenerationRequest(BaseModel):
     output_formats: list[OutputFormat] = Field(
         default=["setup.sh", "requirements.txt"],
         min_length=1,
+    )
+    use_uv: bool = Field(
+        default=False,
+        description="Use uv instead of pip for package installation",
     )
 
 
@@ -40,6 +44,7 @@ class ScriptPreview(BaseModel):
 
 class GenerationResponse(BaseModel):
     """Response for POST /scripts/generate."""
+
     job_id: uuid.UUID
     status: Literal["completed", "failed"]
     profile_slug: str
@@ -54,4 +59,5 @@ class GenerationResponse(BaseModel):
 
 class GenerationErrorResponse(BaseModel):
     """Response when compatibility resolution fails."""
+
     error: dict[str, Any]  # Structured IncompatibilityError details

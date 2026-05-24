@@ -1,4 +1,5 @@
 """Data models for the Template Engine."""
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -12,6 +13,7 @@ class TemplateContext:
     Context object passed to all Jinja2 templates.
     Built from a validated ResolvedEnvironment + profile metadata.
     """
+
     profile_id: str
     profile_name: str
     resolved: ResolvedEnvironment
@@ -19,6 +21,7 @@ class TemplateContext:
     generated_at: datetime = field(default_factory=datetime.utcnow)
     warnings: list[str] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
+    use_uv: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dict for Jinja2 rendering."""
@@ -29,6 +32,7 @@ class TemplateContext:
             },
             "python_version": self.resolved.python_version,
             "cuda_version": self.resolved.cuda_version,
+            "rocm_version": self.resolved.rocm_version,
             "target_os": self.resolved.target_os,
             "packages": [
                 {
@@ -47,6 +51,7 @@ class TemplateContext:
             "warnings": self.warnings,
             "generated_at": self.generated_at.strftime("%Y-%m-%d %H:%M UTC"),
             "envforge_version": self.envforge_version,
+            "use_uv": self.use_uv,
             **self.extra,
         }
 
@@ -54,6 +59,7 @@ class TemplateContext:
 @dataclass
 class RenderResult:
     """The output of a single template rendering operation."""
+
     filename: str
     content: str
     size_bytes: int = field(init=False)

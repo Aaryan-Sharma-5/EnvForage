@@ -25,6 +25,8 @@ from envforge_agent import __version__
 from envforge_agent.report import ReportBuilder
 from envforge_agent.schemas import DiagnosticReport
 
+from envforge_agent.utils import _map_os_to_target, _extract_python_version
+
 console = Console()
 err_console = Console(stderr=True, style="bold red")
 
@@ -71,7 +73,15 @@ def cli() -> None:
     help="Output diagnostics in SARIF 2.1.0 format for CI/CD pipeline integrations.",
 )
 
-def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool) -> None:
+@click.option(
+    "--timeout", "-t",
+    type=int,
+    default=30,
+    show_default=True,
+    help="Timeout in seconds for each detector subprocess call. Default: 30s.",
+)
+
+def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int) -> None:
     """
     Collect a full diagnostic report of this machine's ML environment.
 
@@ -85,7 +95,7 @@ def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: b
             expand=False,
         ))
 
-    report = ReportBuilder().build()
+    report = ReportBuilder(timeout=timeout).build()
 
     if not quiet:
         _print_report_summary(report)
@@ -485,16 +495,3 @@ def fix(report: str, profile: str, api_url: str, dry_run: bool) -> None:
         sys.exit(1)
 
 
-def _map_os_to_target(report: DiagnosticReport) -> str:
-    if report.os.wsl_version:
-        return "WSL"
-    if "windows" in report.os.name.lower():
-        return "WIN"
-    return "LINUX"
-
-
-def _extract_python_version(report: DiagnosticReport) -> str:
-    if report.active_python:
-        parts = report.active_python.version.split(".")
-        return f"{parts[0]}.{parts[1]}"
-    return "3.11"  # safe default

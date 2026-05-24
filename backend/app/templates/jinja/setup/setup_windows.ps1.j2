@@ -56,6 +56,17 @@ Write-Info "Virtual environment activated: $VenvDir"
 # Upgrade pip
 pip install --quiet --upgrade pip
 
+{% if use_uv %}
+# ── Bootstrap uv ─────────────────────────────────────────────────────────────
+Write-Info "Bootstrapping uv package manager..."
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+    Write-Info "uv installed successfully."
+} else {
+    Write-Info "uv already installed: $(uv --version)"
+}
+{% endif %}
+
 # ── Package installation ──────────────────────────────────────────────────────
 Write-Info "Installing packages..."
 
@@ -64,17 +75,30 @@ Write-Warn "Note: GPU support on Windows requires WSL2 for some frameworks."
 Write-Warn "See: https://docs.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl"
 {% endif %}
 
+{% if use_uv %}
+uv pip install `
+{% for pkg in packages %}
+    "{{ pkg.pip_spec }}" `
+{% endfor %}
+    --quiet
+{% else %}
 pip install `
 {% for pkg in packages %}
     "{{ pkg.pip_spec }}" `
 {% endfor %}
     --quiet
+{% endif %}
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 Write-Info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 Write-Info "✓ EnvForge setup complete!"
 Write-Info "  Profile: {{ profile.name }}"
 Write-Info "  Python : $(python --version)"
+{% if use_uv %}
+Write-Info "  Installer: uv (fast)"
+{% else %}
+Write-Info "  Installer: pip"
+{% endif %}
 Write-Info "  Venv   : $PWD\$VenvDir"
 Write-Info ""
 Write-Info "  Activate with:  .\.venv\Scripts\Activate.ps1"
