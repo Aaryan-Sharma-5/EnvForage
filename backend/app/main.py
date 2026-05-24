@@ -1,6 +1,7 @@
 """
 FastAPI application factory and lifespan management.
 """
+
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -10,16 +11,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from app.api.v1 import diagnose, profiles, repair, scripts, troubleshoot, verify
-from app.config import get_settings
+from app.api.v1 import (
+    diagnose,
+    profiles,
+    repair,
+    scripts,
+    troubleshoot,
+    verify,
+)
 from app.cache import get_redis_client
+from app.config import get_settings
 from app.database import AsyncSessionLocal
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application startup and shutdown."""
     settings = get_settings()
-    print(f"[START] EnvForge API {settings.app_version} starting [{settings.environment}]")
+    print(
+        f"[START] EnvForge API {settings.app_version} starting [{settings.environment}]"
+    )
     yield
     print("🛑 EnvForge API shutting down")
 

@@ -1,12 +1,13 @@
 """Tests for the /health endpoint."""
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _mock_db_ok():
     """Returns a mock AsyncSessionLocal context manager that succeeds."""
@@ -27,10 +28,13 @@ def _mock_redis_ok():
 
 # ── All healthy ───────────────────────────────────────────────────────────────
 
+
 def test_health_all_ok():
     with (
         patch("app.main.AsyncSessionLocal", return_value=_mock_db_ok()),
-        patch("app.main.get_redis_client", new=AsyncMock(return_value=_mock_redis_ok())),
+        patch(
+            "app.main.get_redis_client", new=AsyncMock(return_value=_mock_redis_ok())
+        ),
     ):
         response = TestClient(create_app()).get("/health")
     assert response.status_code == 200
@@ -43,13 +47,16 @@ def test_health_all_ok():
 
 # ── Database down ─────────────────────────────────────────────────────────────
 
+
 def test_health_db_unavailable():
     bad_cm = MagicMock()
     bad_cm.__aenter__ = AsyncMock(side_effect=Exception("db connection refused"))
     bad_cm.__aexit__ = AsyncMock(return_value=False)
     with (
         patch("app.main.AsyncSessionLocal", return_value=bad_cm),
-        patch("app.main.get_redis_client", new=AsyncMock(return_value=_mock_redis_ok())),
+        patch(
+            "app.main.get_redis_client", new=AsyncMock(return_value=_mock_redis_ok())
+        ),
     ):
         response = TestClient(create_app()).get("/health")
     assert response.status_code == 503
@@ -60,6 +67,7 @@ def test_health_db_unavailable():
 
 
 # ── Redis down ────────────────────────────────────────────────────────────────
+
 
 def test_health_redis_unavailable():
     dead_redis = AsyncMock()
@@ -77,6 +85,7 @@ def test_health_redis_unavailable():
 
 
 # ── Both down ─────────────────────────────────────────────────────────────────
+
 
 def test_health_both_unavailable():
     bad_cm = MagicMock()
@@ -97,6 +106,7 @@ def test_health_both_unavailable():
 
 
 # ── Redis not configured ──────────────────────────────────────────────────────
+
 
 def test_health_redis_not_configured():
     with (
