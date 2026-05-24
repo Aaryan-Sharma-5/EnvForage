@@ -7,7 +7,7 @@ profiles:
     tags: [deep-learning, gpu, cuda, pytorch]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
     last_validated: "2024-12-01"
@@ -42,7 +42,7 @@ profiles:
     tags: [deep-learning, gpu, cuda, tensorflow]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8"]
     status: ACTIVE
     last_validated: "2024-12-01"
@@ -68,7 +68,7 @@ profiles:
     tags: [computer-vision, object-detection, yolo, gpu]
     os_support: [LINUX, WSL, WIN]
     cuda_required: false
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
     last_validated: "2024-12-01"
@@ -98,7 +98,7 @@ profiles:
     tags: [generative-ai, image-generation, diffusion, gpu]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
     last_validated: "2024-12-01"
@@ -134,7 +134,7 @@ profiles:
     tags: [computer-vision, opencv, beginner, cpu]
     os_support: [LINUX, WSL, WIN]
     cuda_required: false
-    python_versions: ["3.9", "3.10", "3.11"]
+    python_versions: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     cuda_versions: []
     status: ACTIVE
     last_validated: "2024-12-01"
@@ -164,7 +164,7 @@ profiles:
     tags: [llm, fine-tuning, peft, nlp, gpu]
     os_support: [LINUX, WSL]
     cuda_required: true
-    python_versions: ["3.10", "3.11"]
+    python_versions: ["3.10", "3.11", "3.12", "3.13"]
     cuda_versions: ["11.8", "12.1"]
     status: ACTIVE
     last_validated: "2024-12-01"
