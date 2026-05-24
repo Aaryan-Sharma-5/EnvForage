@@ -1,38 +1,224 @@
-from typing import Any
+import asyncio
+import json
+import logging
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
+from typing import TypeVar
 
 import httpx
-from backend.app.ai.providers.base import LLMProvider
-from backend.app.core.exceptions import LLMProviderError
+from pydantic import BaseModel
+
+from app.ai.providers.base import LLMProvider, LLMProviderError
+
+T = TypeVar("T", bound=BaseModel)
+logger = logging.getLogger(__name__)
 
 
 class OpenAIProvider(LLMProvider):
     """Direct provider implementation for enterprise OpenAI API integration."""
 
-    def __init__(self, api_key: str, base_url: str = "https://api.openai.com/v1"):
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = "https://api.openai.com/v1",
+        model: str = "gpt-4o",
+        max_tokens: int = 2048,
+        temperature: float = 0.3,
+    ) -> None:
         if not api_key:
-            raise LLMProviderError("OpenAI API key configuration is missing.")
+            raise LLMProviderError("openai", "OpenAI API key configuration is missing.")
         self.api_key = api_key
         self.base_url = base_url
+        self.model = model
+        self.max_tokens = max_tokens
+        self.temperature = temperature
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
 
-    async def generate_response(self, model: str, messages: list, temperature: float = 0.2) -> dict[str, Any]:
-        url = f"{self.base_url}/chat/completions"
+    async def complete(
+        self,
+        system_prompt: str,
+        user_message: str,
+        response_model: type[T],
+    ) -> T:
+        schema_json = json.dumps(response_model.model_json_schema(), indent=2)
+        enhanced_system = (
+            f"{system_prompt}\n\n"
+            f"You MUST respond with ONLY valid JSON matching this exact schema:\n"
+            f"```json\n{schema_json}\n```\n"
+            f"Do NOT include any text outside the JSON object."
+        )
+
         payload = {
-            "model": model or "gpt-4o",
-            "messages": messages,
-            "temperature": temperature,
-            "response_format": {"type": "json_object"}
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": enhanced_system},
+                {"role": "user", "content": user_message},
+            ],
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
+            "response_format": {"type": "json_object"},
         }
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             try:
-                response = await client.post(url, json=payload, headers=self.headers)
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    json=payload,
+                    headers=self.headers,
+                )
                 response.raise_for_status()
-                return response.json()
+                data = response.json()
+                choices = data.get("choices", [])
+                if not choices:
+                    raise LLMProviderError("openai", "No choices in response.")
+                content = choices[0].get("message", {}).get("content", "")
+                if not content:
+                    raise LLMProviderError("openai", "Empty content in response.")
+
+                content = content.strip()
+                if content.startswith("```json"):
+                    content = content[7:]
+                if content.startswith("```"):
+                    content = content[3:]
+                if content.endswith("```"):
+                    content = content[:-3]
+                content = content.strip()
+
+                return response_model.model_validate_json(content)
             except httpx.HTTPStatusError as e:
-                raise LLMProviderError(f"OpenAI API error occurred: {e.response.text}")
+                raise LLMProviderError("openai", f"OpenAI API error occured: {e.response.text}")
+            except LLMProviderError:
+                raise
             except Exception as e:
-                raise LLMProviderError(f"Unexpected connection error under OpenAI provider: {str(e)}")
+                raise LLMProviderError("openai", f"Unexpected connection error under OpenAI provider: {str(e)}",) from e
+
+    def stream(
+        self,
+        system_prompt: str,
+        user_message: str,
+        response_model: type[T],
+    ) -> AsyncIterator[str]:
+        """
+        Send a completion request to OpenAI and stream the response content.
+        This generator yields tokens as they arrive.
+        """
+        schema_json = json.dumps(response_model.model_json_schema(), indent=2)
+        enhanced_system = (
+            f"{system_prompt}\n\n"
+            f"You MUST respond with ONLY valid JSON matching this exact schema:\n"
+            f"```json\n{schema_json}\n```\n"
+            f"Do NOT include any text outside the JSON object."
+        )
+
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": enhanced_system},
+                {"role": "user", "content": user_message},
+            ],
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
+            "response_format": {"type": "json_object"},
+            "stream": True,
+        }
+
+        async def generator() -> AsyncIterator[str]:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                max_retries = 3
+
+                for attempt in range(max_retries):
+                    try:
+                        async with client.stream(
+                            "POST",
+                            f"{self.base_url}/chat/completions",
+                            json=payload,
+                            headers=self.headers,
+                        ) as response:
+
+                            if response.status_code == 429:
+                                retry_after = response.headers.get("Retry-After")
+
+                                delay = None
+
+                                if retry_after:
+                                    if retry_after.isdigit():
+                                        delay = max(0, int(retry_after))
+                                    else:
+                                        try:
+                                            retry_at = parsedate_to_datetime(retry_after)
+                                            now = datetime.now(UTC)
+
+                                            delay = max(
+                                                0,
+                                                int((retry_at - now).total_seconds()),
+                                            )
+
+                                        except (TypeError, ValueError, OverflowError):
+                                            delay = None
+
+                                if delay is None:
+                                    delay = 2 ** attempt
+
+                                logger.warning(
+                                    "OpenAI rate limited. Retrying in %s seconds...",
+                                    delay,
+                                )
+
+                                await asyncio.sleep(delay)
+                                continue
+
+                            if response.status_code != 200:
+                                error_body = await response.aread()
+
+                                raise LLMProviderError(
+                                    "openai",
+                                    f"HTTP {response.status_code}: {error_body.decode(errors='replace')[:500]}",
+                                )
+
+                            async for line in response.aiter_lines():
+                                line = line.strip()
+
+                                if not line.startswith("data:"):
+                                    continue
+
+                                data_str = line.removeprefix("data:").strip()
+
+                                if not data_str:
+                                    continue
+
+                                if data_str == "[DONE]":
+                                    break
+
+                                try:
+                                    data = json.loads(data_str)
+                                except json.JSONDecodeError:
+                                    logger.debug("Skipping malformed stream chunk: %s", data_str)
+                                    continue
+
+                                choices = data.get("choices", [])
+
+                                if choices:
+                                    delta = choices[0].get("delta", {})
+                                    content = delta.get("content", "")
+
+                                    if content:
+                                        yield content
+
+                            return
+
+                    except httpx.HTTPError as e:
+                        if attempt == max_retries - 1:
+                            raise LLMProviderError("openai", str(e)) from e
+                        await asyncio.sleep(2 ** attempt)
+                        continue
+
+                raise LLMProviderError(
+                    "openai",
+                    "OpenAI streaming failed after maximum retry attempts.",
+                )
+
+        return generator()

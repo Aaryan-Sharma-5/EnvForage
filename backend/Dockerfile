@@ -8,6 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user and group
+RUN groupadd --system envforge && \
+    useradd --system --gid envforge --no-create-home envforge
+
 # Copy dependency specs first (layer caching)
 COPY pyproject.toml ./
 
@@ -17,6 +21,10 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 # Copy application code
 COPY . .
+RUN chown -R envforge:envforge /app
+
+# Switch to non-root user
+USER envforge
 
 EXPOSE 8000
 

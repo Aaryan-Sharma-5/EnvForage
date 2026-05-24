@@ -1,0 +1,43 @@
+from unittest.mock import AsyncMock, MagicMock, call, patch
+
+import httpx
+import pytest
+from pydantic import BaseModel
+
+from app.ai.providers.base import LLMProviderError
+from app.ai.providers.openai import OpenAIProvider
+
+
+class DummyModel(BaseModel):
+    response: str
+
+
+@pytest.mark.asyncio
+async def test_openai_stream_rate_limit_short_circuit():
+    """Verify that OpenAIProvider.stream handles 429s, retries, and short-circuits on the final attempt."""
+    provider = OpenAIProvider(api_key="test_key")
+
+    mock_response = MagicMock(spec=httpx.Response)
+    mock_response.status_code = 429
+    mock_response.headers = httpx.Headers({"Retry-After": "1"})
+
+    mock_stream_ctx = MagicMock()
+    mock_stream_ctx.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_stream_ctx.__aexit__ = AsyncMock(return_value=None)
+
+    with (
+        patch("httpx.AsyncClient.stream", return_value=mock_stream_ctx) as mock_stream_call,
+        patch("asyncio.sleep", AsyncMock()) as mock_sleep,
+    ):
+        generator = provider.stream(
+            system_prompt="Test system", user_message="Test user", response_model=DummyModel
+        )
+
+        with pytest.raises(LLMProviderError) as exc_info:
+            async for _ in generator:
+                pass
+
+        assert "OpenAI streaming failed after maximum retry attempts" in str(exc_info.value)
+        assert mock_stream_call.call_count == 3
+        assert mock_sleep.call_count == 3
+        mock_sleep.assert_has_calls([call(1), call(1)])

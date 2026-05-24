@@ -1,7 +1,9 @@
 """CLI utility to validate EnvForge profile configurations against schemas and logic rules."""
+# ruff: noqa: E402
 import os
 import sys
 from pathlib import Path
+
 import click
 import yaml
 from pydantic import ValidationError
@@ -68,7 +70,7 @@ def format_pydantic_error(exc: ValidationError) -> list[str]:
 def validate_profile_file(file_path: Path) -> tuple[bool, list[str]]:
     """Validate a single profile YAML file. Returns (is_valid, error_messages)."""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
     except (OSError, UnicodeDecodeError) as e:
         return False, [f"Failed to read file: {e}"]
@@ -147,7 +149,7 @@ def main(path: Path) -> None:
         # Display relative path for clean logs
         rel_path = file.relative_to(backend_dir.parent) if backend_dir.parent in file.parents else file
         click.echo(f"Checking {rel_path}... ", nl=False)
-        
+
         is_valid, errors = validate_profile_file(file)
         if is_valid:
             if errors and "skipped" in errors[0]:

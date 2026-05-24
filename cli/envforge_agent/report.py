@@ -29,6 +29,14 @@ class ReportBuilder:
     zero/None values in the report.
     """
 
+    def __init__(self, timeout: int = 30) -> None:
+        """
+        Args:
+            timeout: Seconds before each detector subprocess call is aborted.
+                     Timed-out detectors return safe defaults (None / empty).
+        """
+        self._timeout = timeout
+
     def build(self) -> DiagnosticReport:
         """
         Run all detectors and return a validated DiagnosticReport.
@@ -38,8 +46,8 @@ class ReportBuilder:
         os_info = detect_os()
         cpu_info = detect_cpu()
         ram_info = detect_ram()
-        gpus = detect_gpus()
-        cuda_info = detect_cuda()
+        gpus = detect_gpus(timeout=self._timeout)
+        cuda_info = detect_cuda(timeout=self._timeout)
         rocm_info = detect_rocm()
         installations, active_python = detect_python()
 

@@ -79,6 +79,13 @@ PYTHON_MATRIX: dict[str, list[FrameworkVersionEntry]] = {
             supported_cuda=["11.8", "12.1", "12.4"],
             supported_rocm=["6.0.0"],
         ),
+        FrameworkVersionEntry(
+            framework="torch", version="2.5.0",
+            min_python="3.9", max_python="3.13",
+            supported_python=["3.9", "3.10", "3.11", "3.12", "3.13"],
+            supported_cuda=["11.8", "12.1", "12.4"],
+            supported_rocm=["6.0.0"],
+        ),
     ],
     "tensorflow": [
         # Note: TensorFlow on Windows requires WSL2 for GPU support (TF 2.11+)
@@ -100,7 +107,13 @@ PYTHON_MATRIX: dict[str, list[FrameworkVersionEntry]] = {
             supported_python=["3.9", "3.10", "3.11"],
             supported_cuda=["12.1"],
         ),
-        # TODO: Add TF 2.16+ once officially released with stable CUDA mapping
+        FrameworkVersionEntry(
+            framework="tensorflow", version="2.16.0",
+            min_python="3.9", max_python="3.13",
+            supported_python=["3.9", "3.10", "3.11", "3.12", "3.13"],
+            supported_cuda=["12.1"],
+        ),
+        # TF 2.16+ added with Python 3.13 support
     ],
     "ultralytics": [
         FrameworkVersionEntry(
@@ -119,6 +132,12 @@ PYTHON_MATRIX: dict[str, list[FrameworkVersionEntry]] = {
             framework="ultralytics", version="8.2.0",
             min_python="3.8", max_python="3.12",
             supported_python=["3.8", "3.9", "3.10", "3.11", "3.12"],
+            supported_cuda=["11.8", "12.1", "12.4"],
+        ),
+        FrameworkVersionEntry(
+            framework="ultralytics", version="8.3.0",
+            min_python="3.9", max_python="3.13",
+            supported_python=["3.9", "3.10", "3.11", "3.12", "3.13"],
             supported_cuda=["11.8", "12.1", "12.4"],
         ),
     ],

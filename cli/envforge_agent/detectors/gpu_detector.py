@@ -7,48 +7,65 @@ Never raises — returns empty list if nvidia-smi is not available.
 """
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 from typing import NamedTuple
-
 from envforge_agent.schemas import GPUInfo
 
+logger = logging.getLogger(__name__)
 
-def detect_gpus() -> list[GPUInfo]:
+
+def detect_gpus(timeout: int = 30) -> list[GPUInfo]:
     """
     Detect all GPUs (NVIDIA or AMD).
     """
     try:
-        gpus = _detect_via_nvidia_smi()
+        gpus = _detect_via_nvidia_smi(timeout=timeout)
         if gpus:
             return gpus
     except Exception:
         pass
 
     try:
-        return _detect_via_rocm_smi()
+        return _detect_via_rocm_smi(timeout=timeout)
     except Exception:
         return []
 
 
-def _detect_via_nvidia_smi() -> list[GPUInfo]:
+def _detect_via_nvidia_smi(timeout: int = 30) -> list[GPUInfo]:
     """
     Run nvidia-smi with CSV query and parse output.
 
     Queries: name, memory.total (MiB), driver_version, per GPU index.
     """
-    result = subprocess.run(
-        [
-            "nvidia-smi",
-            "--query-gpu=index,name,memory.total,driver_version",
-            "--format=csv,noheader,nounits",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=15,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,name,memory.total,driver_version",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except FileNotFoundError:
+        logger.debug("nvidia-smi command not found in system path.")
+        return []
+    except subprocess.TimeoutExpired:
+        logger.debug("nvidia-smi command timed out after 15 seconds.")
+        return []
+    except (OSError, subprocess.SubprocessError) as e:
+        logger.debug("Unexpected error running nvidia-smi: %s", e, exc_info=True)
+        return []
 
     if result.returncode != 0:
+        logger.debug(
+             "nvidia-smi failed with return code %s. Error: %s",
+             result.returncode,
+             result.stderr.strip(),
+         )
         return []
 
     gpus: list[GPUInfo] = []
@@ -86,7 +103,7 @@ def _detect_via_nvidia_smi() -> list[GPUInfo]:
     return gpus
 
 
-def _detect_via_rocm_smi() -> list[GPUInfo]:
+def _detect_via_rocm_smi(timeout: int = 30) -> list[GPUInfo]:
     """
     Run rocm-smi and parse JSON output.
     """
@@ -95,7 +112,7 @@ def _detect_via_rocm_smi() -> list[GPUInfo]:
             ["rocm-smi", "--showproductname", "--showvram", "--showdriverversion", "--json"],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=timeout,
         )
     except FileNotFoundError:
         return []
