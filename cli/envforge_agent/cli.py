@@ -5,6 +5,7 @@ Commands:
   envforge diagnose   Collect and display a DiagnosticReport
   envforge verify     Check if a profile is compatible with this system
   envforge fix        Generate a repair script from a saved report
+  envforge rollback   Restore a venv from a backup directory
 """
 from __future__ import annotations
 
@@ -494,4 +495,68 @@ def fix(report: str, profile: str, api_url: str, dry_run: bool) -> None:
         err_console.print(f"API error {e.response.status_code}: {e.response.text}")
         sys.exit(1)
 
+# ── envforge rollback ──────────────────────────────────────────────────────────
 
+@cli.command("rollback")
+def rollback() -> None:
+    """
+    Restore a virtual environment from a backup created by repair_venv_recreate.
+
+    Scans the current directory for folders matching *_backup_* and prompts
+    the user to select one to restore via Rich interactive prompt.
+    """
+    import glob
+    import shutil
+
+    backups = glob.glob("*_backup_*") + glob.glob(".*_backup_*")
+
+    if not backups:
+        err_console.print("[ERROR] No backup directories found in the current directory.")
+        err_console.print("  Hint: Backups are created by 'envforge fix' and named like '.venv_backup_20260524'.")
+        sys.exit(1)
+
+    console.print(Panel(
+        f"[bold cyan]EnvForge Rollback[/] v{__version__}\n"
+        "[dim]Restoring virtual environment from backup...[/]",
+        expand=False,
+    ))
+
+    table = Table(box=box.ROUNDED, show_header=True, padding=(0, 1))
+    table.add_column("#", style="bold cyan", width=4)
+    table.add_column("Backup Directory", style="bold")
+
+    for i, b in enumerate(backups, start=1):
+        table.add_row(str(i), b)
+
+    console.print(table)
+
+    if len(backups) == 1:
+        chosen = backups[0]
+        console.print(f"[dim]Only one backup found — selecting:[/] [bold]{chosen}[/]")
+    else:
+        from rich.prompt import IntPrompt
+        idx = IntPrompt.ask(
+            "Select backup number to restore",
+            choices=[str(i) for i in range(1, len(backups) + 1)],
+        )
+        chosen = backups[idx - 1]
+
+    original = chosen.split("_backup_")[0]
+
+    console.print(f"\n[yellow]This will replace '[bold]{original}[/]' with '[bold]{chosen}[/]'[/]")
+
+    from rich.prompt import Confirm
+    if not Confirm.ask("Proceed with rollback?"):
+        console.print("[dim]Rollback cancelled.[/]")
+        sys.exit(0)
+
+    try:
+        if Path(original).exists():
+            shutil.rmtree(original)
+
+        shutil.copytree(chosen, original)
+        console.print(f"\n[green][+][/] Rollback complete. '[bold]{original}[/]' restored from '[bold]{chosen}[/]'")
+
+    except Exception as e:
+        err_console.print(f"[ERROR] Rollback failed: {e}")
+        sys.exit(1)
