@@ -64,6 +64,8 @@ async def generate_scripts(
         profile_name=profile.name,
         resolved=resolved,
         warnings=resolved.warnings,
+        use_uv=request.use_uv,
+        use_micromamba=request.use_micromamba,
     )
     render_results = _renderer.render_all(request.output_formats, ctx)
 

@@ -28,6 +28,10 @@ class GenerationRequest(BaseModel):
         default=False,
         description="Use uv instead of pip for package installation",
     )
+    use_micromamba: bool = Field(
+        default=False,
+        description="Use micromamba instead of standard Conda/Miniconda for environment management",
+    )
 
 
 class ResolvedPackage(BaseModel):

@@ -22,6 +22,7 @@ class TemplateContext:
     warnings: list[str] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
     use_uv: bool = False
+    use_micromamba: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dict for Jinja2 rendering."""
@@ -52,6 +53,7 @@ class TemplateContext:
             "generated_at": self.generated_at.strftime("%Y-%m-%d %H:%M UTC"),
             "envforge_version": self.envforge_version,
             "use_uv": self.use_uv,
+            "use_micromamba": self.use_micromamba,
             **self.extra,
         }
 
