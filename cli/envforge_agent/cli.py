@@ -595,5 +595,7 @@ def rollback() -> None:
                 temp_original.rename(original_path)
             except Exception as restore_err:
                 err_console.print(f"[WARNING] Failed to restore original directory: {restore_err}")
+        elif original_path.exists():
+            shutil.rmtree(original_path, ignore_errors=True)
         err_console.print(f"[ERROR] Rollback failed: {e}")
         sys.exit(1)

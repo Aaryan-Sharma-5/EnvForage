@@ -142,3 +142,23 @@ class TestRollbackRobustness:
 
         assert result.exit_code == 1
         assert "could not determine original" in result.output.lower()
+
+    def test_rollback_failure_when_no_original_exists_cleans_up(self, tmp_path):
+        runner = CliRunner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            os.makedirs("venv_backup_2026")
+            with open("venv_backup_2026/pyvenv.cfg", "w") as f:
+                f.write("version = 3.12")
+
+            def fake_copytree(src, dst):
+                os.makedirs(dst)
+                with open(os.path.join(dst, "partial.cfg"), "w") as f:
+                    f.write("partial")
+                raise Exception("Failed mid-copy")
+
+            with patch("shutil.copytree", side_effect=fake_copytree):
+                with patch("rich.prompt.Confirm.ask", return_value=True):
+                    result = runner.invoke(cli, ["rollback"])
+
+            assert result.exit_code == 1
+            assert not os.path.exists("venv")
