@@ -49,10 +49,10 @@
   --text-secondary: #666666;
   --text-muted: #999999;
   
-  --brand-primary: #6366f1; /
+  --brand-primary: #6366f1;
   --brand-primary-hover: #4f46e5;
-  --brand-secondary: #ec4899; /
-  --brand-accent: #10b981;  
+  --brand-secondary: #ec4899;
+  --brand-accent: #10b981;
   
   --border-subtle: rgba(0, 0, 0, 0.08);
   --border-strong: rgba(0, 0, 0, 0.15);
