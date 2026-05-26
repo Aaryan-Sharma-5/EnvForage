@@ -1,4 +1,5 @@
 """Troubleshoot endpoint — POST /api/v1/troubleshoot."""
+
 import logging
 from collections.abc import AsyncIterator
 
@@ -26,10 +27,11 @@ _service = AITroubleshootService()
         "Submit a diagnostic report and receive a streaming AI-generated "
         "root cause analysis. Returns a text/event-stream of JSON tokens."
     ),
+    tags=["AI"],
     responses={
         201: {"description": "Streaming troubleshoot analysis started"},
         500: {"description": "Internal error"},
-        503: {"description": "AI service unavailable"},
+        503: {"description": "AI provider unavailable or timed out"},
         429: {"description": "Rate limit exceeded"},
     },
 )
@@ -43,6 +45,7 @@ async def troubleshoot(
     troubleshooting tokens via Server-Sent Events (SSE).
     """
     try:
+
         async def event_generator() -> AsyncIterator[str]:
             try:
                 async for chunk in _service.stream_troubleshoot(request, db):
@@ -50,8 +53,8 @@ async def troubleshoot(
             except Exception:
                 logger.exception("Error in troubleshoot stream generator")
                 yield (
-                    "data: {\"error\":\"STREAM_ERROR\","
-                    "\"message\":\"Internal streaming error.\"}\n\n"
+                    'data: {"error":"STREAM_ERROR",'
+                    '"message":"Internal streaming error."}\n\n'
                 )
 
         return StreamingResponse(
