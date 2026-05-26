@@ -42,6 +42,17 @@ Please read the [Code of Conduct](./CODE_OF_CONDUCT.md) to keep our community ap
 
 If you prefer to run the entire application locally without Docker, follow this guide. This is ideal for rapid iteration, debugging, and development work.
 
+-💡**Developer Workflow Optimization**
+
+- A Makefile is now available at the repository root to standardize common tasks.
+Instead of typing out long manual commands, you can now use these simple shortcuts
+from the root folder.
+
+- **Run Tests**: `make test`
+- **Code Linting/Formatting**: `make lint`
+- **Start Development Server**: `make run-dev`
+- **Database Migration & Seeds**: `make db-upgrade`
+
 ### Prerequisites
 
 | Requirement | Version | Notes |
