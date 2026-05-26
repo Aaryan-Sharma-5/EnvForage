@@ -878,18 +878,40 @@ def list_profiles(api_url: str, quiet: bool, filter_tag: str | None) -> None:
         ))
 
     try:
-        response = httpx.get(url, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        profiles: list[dict] = data.get("profiles", data) if isinstance(data, dict) else data
+        profiles: list[dict] = []
+        page = 1
+        limit = 100
+
+        while True:
+            response = httpx.get(url, params={"page": page, "limit": limit}, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+
+            page_profiles = data.get("profiles", []) if isinstance(data, dict) else data
+            if not isinstance(page_profiles, list):
+                err_console.print("[ERROR] Invalid profiles payload from API.")
+                sys.exit(1)
+
+            profiles.extend(page_profiles)
+
+            total = data.get("total") if isinstance(data, dict) else None
+            if not page_profiles or (isinstance(total, int) and len(profiles) >= total):
+                break
+            page += 1
 
     except httpx.ConnectError:
         err_console.print(f"[ERROR] Cannot connect to {url}")
         err_console.print("  Hint: Is the EnvForge API running? Check ENVFORGE_API_URL.")
         sys.exit(1)
+    except httpx.RequestError as e:
+        err_console.print(f"[ERROR] Request failed for {url}: {e}")
+        sys.exit(1)
     except httpx.HTTPStatusError as e:
         err_console.print(f"[ERROR] API returned {e.response.status_code}")
         err_console.print(e.response.text)
+        sys.exit(1)
+    except ValueError:
+        err_console.print("[ERROR] API returned invalid JSON for /api/v1/profiles")
         sys.exit(1)
 
     if filter_tag:
@@ -898,8 +920,11 @@ def list_profiles(api_url: str, quiet: bool, filter_tag: str | None) -> None:
             if filter_tag.lower() in [t.lower() for t in p.get("tags", [])]
         ]
         if not profiles:
-            console.print(f"[yellow]No profiles matched tag:[/] {filter_tag}")
-            sys.exit(0)
+            if quiet:
+                click.echo("[]")
+            else:
+                console.print(f"[yellow]No profiles matched tag:[/] {filter_tag}")
+            return
 
     if quiet:
         click.echo(json.dumps(profiles, indent=2))
