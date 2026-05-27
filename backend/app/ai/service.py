@@ -7,6 +7,8 @@ Pipeline:
     4. Persist session + suggestions to DB for audit
     5. Return structured TroubleshootResponse
 """
+
+import asyncio
 import hashlib
 import logging
 import time
@@ -96,9 +98,14 @@ class AITroubleshootService:
             # Log the failed attempt
             latency_ms = int((time.monotonic() - start_time) * 1000)
             await self._log_audit(
-                db, session_id=None, input_hash=input_hash,
-                safety_passed=False, safety_violation=f"LLM error: {exc.reason}",
-                provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+                db,
+                session_id=None,
+                input_hash=input_hash,
+                safety_passed=False,
+                safety_violation=f"LLM error: {exc.reason}",
+                provider=provider_name,
+                tokens_used=0,
+                latency_ms=latency_ms,
             )
             raise
 
@@ -111,17 +118,21 @@ class AITroubleshootService:
             safety_violation = str(exc)
             latency_ms = int((time.monotonic() - start_time) * 1000)
             await self._log_audit(
-                db, session_id=None, input_hash=input_hash,
-                safety_passed=False, safety_violation=safety_violation,
-                provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+                db,
+                session_id=None,
+                input_hash=input_hash,
+                safety_passed=False,
+                safety_violation=safety_violation,
+                provider=provider_name,
+                tokens_used=0,
+                latency_ms=latency_ms,
             )
             raise
 
         # ── Step 4: Enrich response ───────────────────────────────────────
         llm_result.session_id = session_id
         llm_result.repair_script_available = any(
-            fix.repair_template_id is not None
-            for fix in llm_result.suggested_fixes
+            fix.repair_template_id is not None for fix in llm_result.suggested_fixes
         )
 
         # ── Step 5: Persist to DB ─────────────────────────────────────────
@@ -135,19 +146,30 @@ class AITroubleshootService:
         total_tokens = token_usage.get("total_tokens", 0) if token_usage else 0
 
         await self._persist_session(
-            db, session_id, request, llm_result, provider_name, model_name,
+            db,
+            session_id,
+            request,
+            llm_result,
+            provider_name,
+            model_name,
         )
         await self._log_audit(
-            db, session_id=session_id, input_hash=input_hash,
-            safety_passed=True, safety_violation=None,
-            provider=provider_name, tokens_used=total_tokens,
+            db,
+            session_id=session_id,
+            input_hash=input_hash,
+            safety_passed=True,
+            safety_violation=None,
+            provider=provider_name,
+            tokens_used=total_tokens,
             latency_ms=latency_ms,
         )
 
         logger.info(
             "Troubleshoot complete: session=%s, fixes=%d, confidence=%.2f, latency=%dms",
-            session_id, len(llm_result.suggested_fixes),
-            llm_result.confidence, latency_ms,
+            session_id,
+            len(llm_result.suggested_fixes),
+            llm_result.confidence,
+            latency_ms,
         )
 
         return llm_result
@@ -195,9 +217,14 @@ class AITroubleshootService:
         except SafetyViolationError as exc:
             latency_ms = int((time.monotonic() - start_time) * 1000)
             await self._log_audit(
-                db, session_id=None, input_hash=input_hash,
-                safety_passed=False, safety_violation=str(exc),
-                provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+                db,
+                session_id=None,
+                input_hash=input_hash,
+                safety_passed=False,
+                safety_violation=str(exc),
+                provider=provider_name,
+                tokens_used=0,
+                latency_ms=latency_ms,
             )
             logger.warning("Safety violation in streamed response: %s", exc)
             yield (
@@ -208,9 +235,14 @@ class AITroubleshootService:
 
         latency_ms = int((time.monotonic() - start_time) * 1000)
         await self._log_audit(
-            db, session_id=session_id, input_hash=input_hash,
-            safety_passed=True, safety_violation=None,
-            provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+            db,
+            session_id=session_id,
+            input_hash=input_hash,
+            safety_passed=True,
+            safety_violation=None,
+            provider=provider_name,
+            tokens_used=0,
+            latency_ms=latency_ms,
         )
 
         for chunk in chunks:
@@ -253,42 +285,74 @@ class AITroubleshootService:
             for cmd in fix.safe_commands:
                 validate_rendered_output(cmd, "ai_safe_command")
 
-    async def _persist_session(
-        self,
-        db: AsyncSession,
-        session_id: str,
-        request: TroubleshootRequest,
-        response: TroubleshootResponse,
-        provider_name: str,
-        model_name: str,
-    ) -> None:
-        """Persist the AI session and suggestions to the database."""
-        try:
-            db_session = AISession(
-                id=uuid.UUID(session_id),
-                provider=provider_name,
-                model=model_name,
-                created_at=datetime.utcnow(),
+        async def _persist_session(
+            self,
+            db: AsyncSession,
+            session_id: str,
+            request: TroubleshootRequest,
+            response: TroubleshootResponse,
+            provider_name: str,
+            model_name: str,
+        ) -> None:
+            """Persist the AI session and suggestions to the database."""
+
+            max_retries = 3
+
+            for attempt in range(max_retries):
+                try:
+                    db_session = AISession(
+                        id=uuid.UUID(session_id),
+                        provider=provider_name,
+                        model=model_name,
+                        created_at=datetime.utcnow(),
+                    )
+
+                    db.add(db_session)
+
+                    await db.flush()
+
+                    for fix in response.suggested_fixes:
+                        db_suggestion = AISuggestion(
+                            id=uuid.uuid4(),
+                            session_id=db_session.id,
+                            step_number=fix.step,
+                            title=fix.title,
+                            description=fix.description,
+                            severity=fix.severity,
+                            safe_commands=(
+                                fix.safe_commands if fix.safe_commands else None,
+                            ),
+                            template_id=fix.repair_template_id,
+                            created_at=datetime.utcnow(),
+                        )
+
+                        db.add(db_suggestion)
+
+                    return
+
+                except Exception as exc:
+                    await db.rollback()
+
+                    logger.error(
+                        "Failed to persist AI session " "(attempt %d/%d): %s",
+                        attempt + 1,
+                        max_retries,
+                        exc,
+                    )
+
+                    if attempt < max_retries - 1:
+                        logger.warning(
+                            "Retrying AI session persistence" "for session %s",
+                            session_id,
+                        )
+
+                        await asyncio.sleep(1)
+
+            logger.critical(
+                "AI session persistence permanently failed" " for session %s",
+                session_id,
             )
-            db.add(db_session)
-            await db.flush()
 
-            for fix in response.suggested_fixes:
-                db_suggestion = AISuggestion(
-                    id=uuid.uuid4(),
-                    session_id=db_session.id,
-                    step_number=fix.step,
-                    title=fix.title,
-                    description=fix.description,
-                    severity=fix.severity,
-                    safe_commands=fix.safe_commands if fix.safe_commands else None,
-                    template_id=fix.repair_template_id,
-                    created_at=datetime.utcnow(),
-                )
-                db.add(db_suggestion)
-
-        except Exception as exc:
-            logger.error("Failed to persist AI session: %s", exc)
             # Don't fail the request if persistence fails
             # The response is still valid
 
