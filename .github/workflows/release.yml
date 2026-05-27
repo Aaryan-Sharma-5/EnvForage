@@ -55,6 +55,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api/v1
+          tags: |
+            ghcr.io/${{ env.REPO_LC }}/frontend:latest
+            ghcr.io/${{ env.REPO_LC }}/frontend:${{ github.ref_name }}
+
       - name: Build and push Backend Docker image
         uses: docker/build-push-action@v5
         with:
