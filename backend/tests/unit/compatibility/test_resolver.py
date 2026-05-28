@@ -233,3 +233,36 @@ def test_cuda_125_126_in_supported_versions():
     from app.compatibility.matrix.cuda import SUPPORTED_CUDA_VERSIONS
     assert "12.5" in SUPPORTED_CUDA_VERSIONS
     assert "12.6" in SUPPORTED_CUDA_VERSIONS
+
+
+def test_rocm_version_override_success():
+    result = R.resolve(
+        packages=[PackageConstraint("torch", "2.0.0")],
+        python_version="3.10",
+        cuda_version=None,
+        rocm_version="5.6.0",
+        target_os="LINUX",
+        profile_slug="pytorch-rocm",
+        os_support=["LINUX"],
+        rocm_required=True,
+        overrides={"torch": "2.1.0"},
+    )
+    assert result.packages[0].version == "2.1.0"
+    assert result.packages[0].cuda_variant == "rocm5.6.0"
+
+
+def test_rocm_version_override_failure():
+    with pytest.raises(IncompatibilityError) as exc:
+        R.resolve(
+            packages=[PackageConstraint("torch", "2.1.0")],
+            python_version="3.10",
+            cuda_version=None,
+            rocm_version="5.6.0",
+            target_os="LINUX",
+            profile_slug="pytorch-rocm",
+            os_support=["LINUX"],
+            rocm_required=True,
+            overrides={"torch": "2.4.0"},  # 2.4.0 only supports ROCm 6.0.0
+        )
+    assert exc.value.component == "rocm"
+
