@@ -2,15 +2,17 @@
 Python Version Compatibility Matrix.
 
 Maps ML framework versions to their supported Python version ranges.
+Data is now dynamically generated and loaded from python_matrix_data.json.
 
 Sources:
-  - PyTorch: https://pytorch.org/get-started/locally/ (Python support column)
+  - PyPI Metadata (Requires-Python) for Python version constraints.
+  - PyTorch: https://pytorch.org/get-started/locally/
   - TensorFlow: https://www.tensorflow.org/install/pip#software_requirements
   - Ultralytics YOLOv8: https://docs.ultralytics.com/quickstart/
-  - Diffusers: https://huggingface.co/docs/diffusers/installation
-
-Note: PyPI metadata can be dynamically fetched using `backend/scripts/fetch_pypi_metadata.py`.
 """
+import json
+from pathlib import Path
+
 from app.compatibility.models import FrameworkVersionEntry
 
 # ── Framework Version → Python Compatibility ──────────────────────────────────
@@ -183,6 +185,14 @@ PYTHON_MATRIX: dict[str, list[FrameworkVersionEntry]] = {
         ),
     ],
 }
+MATRIX_JSON_PATH = Path(__file__).resolve().parent / "python_matrix_data.json"
+
+with open(MATRIX_JSON_PATH) as f:
+    _raw_data = json.load(f)
+
+PYTHON_MATRIX: dict[str, list[FrameworkVersionEntry]] = {}
+for _framework, _entries in _raw_data.items():
+    PYTHON_MATRIX[_framework] = [FrameworkVersionEntry(**kwargs) for kwargs in _entries]
 
 
 def get_framework_versions(framework: str) -> list[FrameworkVersionEntry]:
