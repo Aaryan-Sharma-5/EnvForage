@@ -182,7 +182,7 @@ class RedisBackend(RateLimitBackend):
             # Find when the oldest request in the window expires
             oldest = await self._client.zrange(key, 0, 0, withscores=True)
             if oldest:
-                retry_after = int(oldest[0][1] + window_seconds - now) + 1
+                retry_after = int(float(oldest[0][1]) + window_seconds - now) + 1
             else:
                 retry_after = window_seconds
             return False, {
