@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Terminal, Shield, Cpu, CheckCircle2, Wifi, Server } from "lucide-react";
+import { Terminal, CheckCircle2, Wifi, Server } from "lucide-react";
 
 interface TerminalLoaderProps {
   targetOs?: string;
@@ -30,7 +30,6 @@ export default function TerminalLoader({
   title = "EnvForge Environment Compiler",
 }: TerminalLoaderProps) {
   const [progress, setProgress] = useState(0);
-  const [logs, setLogs] = useState<LogItem[]>([]);
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
   // Generate logs dynamic configuration
@@ -63,23 +62,18 @@ export default function TerminalLoader({
     { text: "[system] Compilation COMPLETED successfully. Assets ready.", type: "success", minProgress: 100 },
   ];
 
+  // Derived logs visible based on progress
+  const logs = logSequence.filter((item) => progress >= item.minProgress);
+
   // Auto-scroll terminal logs
   useEffect(() => {
     if (consoleEndRef.current) {
       consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [logs]);
-
-  // Update visible logs based on progress
-  useEffect(() => {
-    const visibleLogs = logSequence.filter((item) => progress >= item.minProgress);
-    setLogs(visibleLogs);
-  }, [progress]);
+  }, [logs.length]);
 
   // Progress count-up simulation logic
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    
     const updateProgress = () => {
       setProgress((prev) => {
         if (prev >= 100) {
@@ -111,7 +105,7 @@ export default function TerminalLoader({
       return 50; // wrap up speed
     };
 
-    timer = setInterval(updateProgress, getIntervalTime());
+    const timer = setInterval(updateProgress, getIntervalTime());
 
     return () => clearInterval(timer);
   }, [progress, isResolved]);
@@ -433,7 +427,7 @@ export default function TerminalLoader({
             </span>
             <span>
               THREAD_EXECUTION:{" "}
-              {progress === 100 ? "DONE" : `${(Math.random() * 3 + 1.2).toFixed(1)} MB/s`}
+              {progress === 100 ? "DONE" : `${(((Math.floor(progress) * 7) % 3) + 1.5).toFixed(1)} MB/s`}
             </span>
           </div>
         </div>
