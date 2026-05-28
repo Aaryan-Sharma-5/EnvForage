@@ -9,7 +9,7 @@ Sources:
   - Ultralytics YOLOv8: https://docs.ultralytics.com/quickstart/
   - Diffusers: https://huggingface.co/docs/diffusers/installation
 
-TODO: Automate this from PyPI metadata in a future phase.
+Note: PyPI metadata can be dynamically fetched using `backend/scripts/fetch_pypi_metadata.py`.
 """
 from app.compatibility.models import FrameworkVersionEntry
 
