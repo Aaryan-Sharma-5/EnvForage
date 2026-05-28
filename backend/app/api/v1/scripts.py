@@ -3,16 +3,16 @@
 import io
 import zipfile
 
-from fastapi import APIRouter, HTTPException, Path, Depends
+from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import DB
-from app.middleware.rate_limit import general_rate_limit
 from app.compatibility.errors import (
     IncompatibilityError,
     UnknownVersionError,
     UnsupportedOSError,
 )
+from app.middleware.rate_limit import general_rate_limit
 from app.schemas.script import GenerationRequest, GenerationResponse
 from app.services import profile_service, script_service
 

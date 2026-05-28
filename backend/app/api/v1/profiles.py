@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.deps import DB
-from app.middleware.rate_limit import general_rate_limit
 from app.core.exceptions import ConflictError, EntityNotFoundError, InternalServerError
+from app.middleware.rate_limit import general_rate_limit
 from app.schemas.profile import (
     ProfileCreateSchema,
     ProfileDetailSchema,

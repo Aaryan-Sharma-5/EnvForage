@@ -6,7 +6,6 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 
 from app.api.deps import DB
-from app.middleware.rate_limit import general_rate_limit
 from app.compatibility.errors import (
     IncompatibilityError,
     UnknownVersionError,
@@ -14,6 +13,7 @@ from app.compatibility.errors import (
 )
 from app.compatibility.models import OSTarget, PackageConstraint
 from app.compatibility.resolver import CompatibilityResolver
+from app.middleware.rate_limit import general_rate_limit
 from app.models.diagnostic import DiagnosticReport
 from app.schemas.diagnostic import (
     CompatibilityIssue,
