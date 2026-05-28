@@ -9,7 +9,7 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: 
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "EnvForge | ML Environment Provisioning",
+  title: "EnvForage | ML Environment Provisioning",
   description: "Generate intelligent, safe, and deterministic ML/AI environment setup scripts.",
 };
 
@@ -52,7 +52,7 @@ export default function RootLayout({
         {/* Footer */}
         <footer style={{ borderTop: '1px solid var(--border-subtle)', padding: '2rem 0', marginTop: '4rem', color: 'var(--text-muted)' }}>
           <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-            <p>© {new Date().getFullYear()} EnvForge. Open Source Tooling.</p>
+            <p>© {new Date().getFullYear()} EnvForage. Open Source Tooling.</p>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <Link href="/docs">Documentation</Link>
               <Link href="/privacy">Privacy</Link>
