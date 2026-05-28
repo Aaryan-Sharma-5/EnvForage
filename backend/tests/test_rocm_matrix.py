@@ -26,6 +26,8 @@ def test_get_rocm_entry_invalid():
     [
         ("torch", "2.0.0", ["5.4.2"]),
         ("torch", "2.3.0", ["5.7.0", "6.0.0"]),
+        ("torch", "2.4.0", ["6.0.0", "6.1.0"]),
+        ("torch", "2.5.0", ["6.2.0"]),
         ("tensorflow", "2.14.0", ["5.6.0"]),
     ],
 )
@@ -58,6 +60,8 @@ def test_supported_rocm_versions_sorted():
         ("5.6.0", "gfx1100"),
         ("5.7.0", "gfx1101"),
         ("6.0.0", "gfx940"),
+        ("6.1.0", "gfx942"),
+        ("6.2.0", "gfx1150"),
     ],
 )
 def test_gpu_architecture_mapping(rocm_version, gpu_arch):
