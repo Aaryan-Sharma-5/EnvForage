@@ -3,10 +3,11 @@ Compatibility Matrix API endpoints.
 Exposes CUDA, ROCm, and Python compatibility matrices as read-only REST endpoints.
 Resolves Issue #85.
 """
+
 from dataclasses import asdict
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 
 from app.compatibility.matrix.cuda import (
     CUDA_MATRIX,
@@ -20,11 +21,21 @@ from app.compatibility.matrix.rocm import (
     SUPPORTED_ROCM_VERSIONS,
 )
 
-router = APIRouter(prefix="/compatibility")
+router = APIRouter(prefix="/compatibility", tags=["Compatibility"])
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
-@router.get("", summary="Summary of all compatibility matrices")
+
+@router.get(
+    "",
+    summary="Get compatibility matrix summary",
+    description=(
+        "Return a high-level summary of CUDA, ROCm, and Python compatibility matrices."
+    ),
+    responses={
+        200: {"description": "Compatibility summary retrieved successfully"},
+    },
+)
 async def get_compatibility_summary() -> dict[str, Any]:
     """
     Returns a high-level summary of all available compatibility matrices.
@@ -45,7 +56,9 @@ async def get_compatibility_summary() -> dict[str, Any]:
                 "count": len(ROCM_MATRIX),
             },
             "python": {
-                "description": "Framework version → supported Python versions + CUDA/ROCm versions",
+                "description": (
+                    "Framework version → supported Python versions + CUDA/ROCm versions"
+                ),
                 "endpoint": "/api/v1/compatibility/python",
                 "supported_frameworks": sorted(PYTHON_MATRIX.keys()),
                 "count": sum(len(v) for v in PYTHON_MATRIX.values()),
@@ -53,9 +66,21 @@ async def get_compatibility_summary() -> dict[str, Any]:
         }
     }
 
+
 # ── CUDA ──────────────────────────────────────────────────────────────────────
 
-@router.get("/cuda", summary="List all CUDA compatibility entries")
+
+@router.get(
+    "/cuda",
+    summary="List CUDA compatibility entries",
+    description=(
+        "Return the full CUDA compatibility matrix, including minimum NVIDIA "
+        "driver versions, supported cuDNN versions, and supported GPU architectures."
+    ),
+    responses={
+        200: {"description": "CUDA compatibility matrix retrieved successfully"},
+    },
+)
 async def get_cuda_matrix() -> dict[str, Any]:
     """
     Returns the full CUDA compatibility matrix.
@@ -69,7 +94,17 @@ async def get_cuda_matrix() -> dict[str, Any]:
         "data": {version: asdict(entry) for version, entry in CUDA_MATRIX.items()},
     }
 
-@router.get("/cuda/frameworks", summary="List framework → CUDA version support map")
+
+@router.get(
+    "/cuda/frameworks",
+    summary="List framework CUDA support",
+    description=(
+        "Return a mapping of supported CUDA versions for each framework version."
+    ),
+    responses={
+        200: {"description": "Framework CUDA support map retrieved successfully"},
+    },
+)
 async def get_framework_cuda_support() -> dict[str, Any]:
     """
     Returns the framework → CUDA version support map.
@@ -80,8 +115,26 @@ async def get_framework_cuda_support() -> dict[str, Any]:
         "data": FRAMEWORK_CUDA_SUPPORT,
     }
 
-@router.get("/cuda/{cuda_version}", summary="Get a single CUDA version entry")
-async def get_cuda_version(cuda_version: str) -> dict[str, Any]:
+
+@router.get(
+    "/cuda/{cuda_version}",
+    summary="Get CUDA compatibility entry",
+    description=(
+        "Return compatibility details for a specific CUDA version, including "
+        "driver requirements, cuDNN support, and supported GPU architectures."
+    ),
+    responses={
+        200: {"description": "CUDA compatibility entry retrieved successfully"},
+        404: {"description": "CUDA version not found in compatibility matrix"},
+    },
+)
+async def get_cuda_version(
+    cuda_version: str = Path(
+        ...,
+        description="CUDA version identifier to look up.",
+        examples=["12.1"],
+    ),
+) -> dict[str, Any]:
     """
     Returns the compatibility entry for a specific CUDA version.
     - **cuda_version**: e.g. `11.8`, `12.1`, `12.4`
@@ -93,16 +146,31 @@ async def get_cuda_version(cuda_version: str) -> dict[str, Any]:
             detail={
                 "error": {
                     "code": "CUDA_VERSION_NOT_FOUND",
-                    "message": f"CUDA version '{cuda_version}' is not in the compatibility matrix.",
+                    "message": (
+                        f"CUDA version '{cuda_version}' is not in the "
+                        "compatibility matrix."
+                    ),
                     "supported_versions": SUPPORTED_CUDA_VERSIONS,
                 }
             },
         )
     return {"cuda_version": cuda_version, **asdict(entry)}
 
+
 # ── ROCm ──────────────────────────────────────────────────────────────────────
 
-@router.get("/rocm", summary="List all ROCm compatibility entries")
+
+@router.get(
+    "/rocm",
+    summary="List ROCm compatibility entries",
+    description=(
+        "Return the full ROCm compatibility matrix, including required Linux "
+        "driver versions and supported AMD GPU architectures."
+    ),
+    responses={
+        200: {"description": "ROCm compatibility matrix retrieved successfully"},
+    },
+)
 async def get_rocm_matrix() -> dict[str, Any]:
     """
     Returns the full ROCm compatibility matrix.
@@ -116,7 +184,17 @@ async def get_rocm_matrix() -> dict[str, Any]:
         "data": {version: asdict(entry) for version, entry in ROCM_MATRIX.items()},
     }
 
-@router.get("/rocm/frameworks", summary="List framework → ROCm version support map")
+
+@router.get(
+    "/rocm/frameworks",
+    summary="List framework ROCm support",
+    description=(
+        "Return a mapping of supported ROCm versions for each framework version."
+    ),
+    responses={
+        200: {"description": "Framework ROCm support map retrieved successfully"},
+    },
+)
 async def get_framework_rocm_support() -> dict[str, Any]:
     """
     Returns the framework → ROCm version support map.
@@ -127,8 +205,26 @@ async def get_framework_rocm_support() -> dict[str, Any]:
         "data": FRAMEWORK_ROCM_SUPPORT,
     }
 
-@router.get("/rocm/{rocm_version}", summary="Get a single ROCm version entry")
-async def get_rocm_version(rocm_version: str) -> dict[str, Any]:
+
+@router.get(
+    "/rocm/{rocm_version}",
+    summary="Get ROCm compatibility entry",
+    description=(
+        "Return compatibility details for a specific ROCm version, including "
+        "driver requirements and supported AMD GPU architectures."
+    ),
+    responses={
+        200: {"description": "ROCm compatibility entry retrieved successfully"},
+        404: {"description": "ROCm version not found in compatibility matrix"},
+    },
+)
+async def get_rocm_version(
+    rocm_version: str = Path(
+        ...,
+        description="ROCm version identifier to look up.",
+        examples=["6.0.0"],
+    ),
+) -> dict[str, Any]:
     """
     Returns the compatibility entry for a specific ROCm version.
     - **rocm_version**: e.g. `5.7.0`, `6.0.0`
@@ -140,16 +236,31 @@ async def get_rocm_version(rocm_version: str) -> dict[str, Any]:
             detail={
                 "error": {
                     "code": "ROCM_VERSION_NOT_FOUND",
-                    "message": f"ROCm version '{rocm_version}' is not in the compatibility matrix.",
+                    "message": (
+                        f"ROCm version '{rocm_version}' is not in the "
+                        "compatibility matrix."
+                    ),
                     "supported_versions": SUPPORTED_ROCM_VERSIONS,
                 }
             },
         )
     return {"rocm_version": rocm_version, **asdict(entry)}
 
+
 # ── Python ────────────────────────────────────────────────────────────────────
 
-@router.get("/python", summary="List all Python compatibility entries")
+
+@router.get(
+    "/python",
+    summary="List Python compatibility entries",
+    description=(
+        "Return the full Python compatibility matrix for supported frameworks, "
+        "including compatible Python, CUDA, and ROCm versions."
+    ),
+    responses={
+        200: {"description": "Python compatibility matrix retrieved successfully"},
+    },
+)
 async def get_python_matrix() -> dict[str, Any]:
     """
     Returns the full Python compatibility matrix.
@@ -165,8 +276,23 @@ async def get_python_matrix() -> dict[str, Any]:
         },
     }
 
-@router.get("/python/{framework}", summary="Get Python compatibility for a specific framework")
-async def get_python_framework(framework: str) -> dict[str, Any]:
+
+@router.get(
+    "/python/{framework}",
+    summary="Get Python compatibility by framework",
+    description=("Return all Python compatibility entries for a specific framework."),
+    responses={
+        200: {"description": "Framework Python compatibility retrieved successfully"},
+        404: {"description": "Framework not found in Python compatibility matrix"},
+    },
+)
+async def get_python_framework(
+    framework: str = Path(
+        ...,
+        description="Framework name to look up.",
+        examples=["torch"],
+    ),
+) -> dict[str, Any]:
     """
     Returns all versioned Python compatibility entries for a given framework.
     - **framework**: e.g. `torch`, `tensorflow`, `ultralytics`
@@ -178,7 +304,10 @@ async def get_python_framework(framework: str) -> dict[str, Any]:
             detail={
                 "error": {
                     "code": "FRAMEWORK_NOT_FOUND",
-                    "message": f"Framework '{framework}' is not in the Python compatibility matrix.",
+                    "message": (
+                        f"Framework '{framework}' is not in the Python "
+                        "compatibility matrix."
+                    ),
                     "supported_frameworks": sorted(PYTHON_MATRIX.keys()),
                 }
             },
@@ -189,8 +318,31 @@ async def get_python_framework(framework: str) -> dict[str, Any]:
         "data": [asdict(entry) for entry in entries],
     }
 
-@router.get("/python/{framework}/{version}", summary="Get Python compatibility for a specific framework version")
-async def get_python_framework_version(framework: str, version: str) -> dict[str, Any]:
+
+@router.get(
+    "/python/{framework}/{version}",
+    summary="Get Python compatibility by framework version",
+    description=(
+        "Return Python, CUDA, and ROCm compatibility details for a specific "
+        "framework version."
+    ),
+    responses={
+        200: {"description": "Framework version compatibility retrieved successfully"},
+        404: {"description": "Framework or framework version not found"},
+    },
+)
+async def get_python_framework_version(
+    framework: str = Path(
+        ...,
+        description="Framework name to look up.",
+        examples=["torch"],
+    ),
+    version: str = Path(
+        ...,
+        description="Framework version to look up.",
+        examples=["2.1.0"],
+    ),
+) -> dict[str, Any]:
     """
     Returns the Python compatibility entry for a specific framework version.
     - **framework**: e.g. `torch`, `tensorflow`
@@ -203,7 +355,10 @@ async def get_python_framework_version(framework: str, version: str) -> dict[str
             detail={
                 "error": {
                     "code": "FRAMEWORK_NOT_FOUND",
-                    "message": f"Framework '{framework}' is not in the Python compatibility matrix.",
+                    "message": (
+                        f"Framework '{framework}' is not in the Python "
+                        "compatibility matrix."
+                    ),
                     "supported_frameworks": sorted(PYTHON_MATRIX.keys()),
                 }
             },
@@ -216,7 +371,9 @@ async def get_python_framework_version(framework: str, version: str) -> dict[str
         detail={
             "error": {
                 "code": "FRAMEWORK_VERSION_NOT_FOUND",
-                "message": f"Version '{version}' not found for framework '{framework}'.",
+                "message": (
+                    f"Version '{version}' not found for framework '{framework}'."
+                ),
                 "available_versions": [e.version for e in entries],
             }
         },

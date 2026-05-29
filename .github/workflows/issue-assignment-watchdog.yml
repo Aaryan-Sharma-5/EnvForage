@@ -1,0 +1,168 @@
+name: Issue Assignment Watchdog
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  watchdog:
+    name: Check Assignment Requests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Assignment Checks
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get issue, comment, and sender details from payload
+            const issue = context.payload.issue;
+            const comment = context.payload.comment;
+            const sender = context.payload.sender;
+            
+            // Ignore pull requests (GitHub represents PR comments inside issue_comment too)
+            if (issue.pull_request) {
+              console.log('Skipping watchdog: Comment is on a Pull Request, not a standard issue.');
+              return;
+            }
+            
+            // Ignore bots to prevent infinite loop or automated spam checks
+            if (sender.type === 'Bot' || sender.login.includes('[bot]')) {
+              console.log(`Skipping watchdog: Commenter ${sender.login} is identified as a bot.`);
+              return;
+            }
+            
+            const commenter = sender.login;
+            const commentBody = comment.body ? comment.body.trim() : '';
+            
+            // Define standard OSS assignment-style comment patterns
+            const patterns = [
+              /^\/?assign\b/i,
+              /\bassign me\b/i,
+              /\bplease assign\b/i,
+              /\bi want to work\b/i,
+              /\bcan i work\b/i
+            ];
+            
+            // Validate if the trigger comment itself requests assignment
+            const isAssignmentRequest = patterns.some(p => p.test(commentBody));
+            if (!isAssignmentRequest) {
+              console.log('Skipping watchdog: Comment text is not an assignment request.');
+              return;
+            }
+            
+            console.log(`Assignment request matched: "${commentBody}" by user @${commenter}`);
+            
+            // Define interval: last 7 days
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = issue.number;
+            
+            console.log(`Scanning repository comments since ${sevenDaysAgo} for user @${commenter}...`);
+            
+            // Fetch comments across all repo issues from last 7 days to count active requests
+            const assignmentIssues = new Set();
+            let page = 1;
+            let hasMore = true;
+            
+            while (hasMore && page <= 5) {
+              const response = await github.rest.issues.listCommentsForRepo({
+                owner,
+                repo,
+                since: sevenDaysAgo,
+                per_page: 100,
+                page
+              });
+              
+              const comments = response.data;
+              if (comments.length === 0) {
+                break;
+              }
+              
+              for (const c of comments) {
+                // Filter out PR comments
+                if (c.html_url && c.html_url.includes('/pull/')) {
+                  continue;
+                }
+                
+                // Match author and assignment patterns
+                if (c.user && c.user.login === commenter) {
+                  const body = c.body ? c.body.trim() : '';
+                  if (patterns.some(p => p.test(body))) {
+                    assignmentIssues.add(c.issue_url);
+                  }
+                }
+              }
+              
+              if (comments.length < 100) {
+                hasMore = false;
+              } else {
+                page++;
+              }
+            }
+            
+            console.log(`User @${commenter} requested assignment on ${assignmentIssues.size} unique issues in the last 7 days.`);
+            
+            const maxAllowed = 4;
+            if (assignmentIssues.size > maxAllowed) {
+              console.log(`Spam threshold exceeded: ${assignmentIssues.size} > ${maxAllowed}. Preparing warning comment and label.`);
+              
+              // Define warning comment structure
+              const warningSignature = '<!-- SPAM-ASSIGNMENT-WATCHDOG-WARNING -->';
+              const warningBody = `${warningSignature}
+
+Hi @${commenter},
+
+It looks like you have requested to be assigned to **${assignmentIssues.size}** different issues in the last 7 days. The maximum allowed limit for contributors is **${maxAllowed}** concurrent requests.
+
+To keep the community fair and give everyone a chance to contribute, please avoid spamming assignment requests. Focus on finishing your existing assignments first.
+
+If you have completed your current tasks, please ask the maintainers to review them before requesting new ones.
+
+---
+*Note: This is an automated warning to improve contributor experience.*`;
+              
+              // Search for existing watchdog warning comment on current issue to prevent duplicate posts
+              const { data: issueComments } = await github.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number: issueNumber
+              });
+              
+              const existingWarning = issueComments.find(c => c.body && c.body.includes(warningSignature));
+              
+              if (existingWarning) {
+                console.log(`Updating existing warning comment (ID: ${existingWarning.id}) with latest details.`);
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existingWarning.id,
+                  body: warningBody
+                });
+              } else {
+                console.log('Creating new warning comment.');
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body: warningBody
+                });
+              }
+              
+              // Apply warning label to current issue
+              try {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  labels: ['spam-assignment']
+                });
+                console.log("Successfully added 'spam-assignment' label to the issue.");
+              } catch (err) {
+                console.log(`Failed to add label: ${err.message}`);
+              }
+            } else {
+              console.log(`User @${commenter} is within limits (${assignmentIssues.size}/${maxAllowed}). No action required.`);
+            }

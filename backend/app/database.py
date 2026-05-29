@@ -28,6 +28,7 @@ def _make_engine() -> AsyncEngine:
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=20,
+        pool_recycle=1800,
         connect_args={
             "prepared_statement_cache_size": 0,
             "statement_cache_size": 0,

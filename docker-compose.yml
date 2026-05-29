@@ -18,24 +18,39 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-  
+
   redis:
     image: redis:7-alpine
     container_name: envforge_redis
     restart: unless-stopped
     ports:
       - "6379:6379"
+
+  llm:
+    image: ollama/ollama
+    container_name: envforge_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   api:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: envforge_api
     restart: unless-stopped
+
     depends_on:
       db:
         condition: service_healthy
+      llm:
+        condition: service_started
+
     ports:
       - "8000:8000"
+
     environment:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql+asyncpg://envforge:envforge_dev_secret@db:5432/envforge
@@ -43,8 +58,11 @@ services:
       DEBUG: "true"
       SECRET_KEY: dev_secret_key_change_in_production
       ENVFORGE_LLM_PROVIDER: mock
+      OLLAMA_BASE_URL: http://llm:11434
+
     volumes:
       - ./backend:/app
+
     command: >
       sh -c "
         alembic upgrade head &&
@@ -52,5 +70,22 @@ services:
         uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+        - BACKEND_API_URL=http://api:8000
+    container_name: envforge_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
+  ollama_data:

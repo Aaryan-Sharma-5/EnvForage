@@ -4,11 +4,16 @@ Template Engine — renders Jinja2 templates into setup scripts.
 All rendered output passes through SafetyFilter before being returned.
 This module never executes generated code; it only renders text.
 """
+
+import logging
 from collections.abc import Sequence
+from functools import lru_cache
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from jinja2 import ChoiceLoader, FileSystemLoader, StrictUndefined, select_autoescape
+from jinja2.sandbox import SandboxedEnvironment
 
+from app.config import get_settings
 from app.templates.models import RenderResult, TemplateContext
 from app.templates.safety import validate_rendered_output
 
@@ -17,39 +22,66 @@ TEMPLATES_DIR = Path(__file__).parent / "jinja"
 
 # ── Template name → output filename mapping ────────────────────────────────────
 TEMPLATE_MAP: dict[str, str] = {
-    "setup.sh":           "setup/setup_linux.sh.j2",
-    "setup.ps1":          "setup/setup_windows.ps1.j2",
-    "requirements.txt":   "config/requirements.j2",
-    "Dockerfile":         "config/dockerfile.j2",
-    "devcontainer.json":  "config/devcontainer.j2",
-    "verify.sh":          "verify/verify_generic.sh.j2",
-    "verify_torch.sh":    "verify/verify_torch.sh.j2",
-    "verify_tf.sh":       "verify/verify_tf.sh.j2",
-    "verify_opencv.sh":   "verify/verify_opencv.sh.j2",
-    "environment.yml":    "config/environment.yml.j2",
-    "pyproject.toml":     "config/pyproject.toml.j2",
+    "setup.sh": "setup/setup_linux.sh.j2",
+    "setup.ps1": "setup/setup_windows.ps1.j2",
+    "requirements.txt": "config/requirements.j2",
+    "Dockerfile": "config/dockerfile.j2",
+    "docker-compose.yml": "config/docker-compose.yml.j2",
+    "devcontainer.json": "config/devcontainer.j2",
+    "verify.sh": "verify/verify_generic.sh.j2",
+    "verify_torch.sh": "verify/verify_torch.sh.j2",
+    "verify_tf.sh": "verify/verify_tf.sh.j2",
+    "verify_opencv.sh": "verify/verify_opencv.sh.j2",
+    "environment.yml": "config/environment.yml.j2",
+    "pyproject.toml": "config/pyproject.toml.j2",
+    "pyproject.poetry.toml": "config/poetry.toml.j2",
+    ".gitignore": "config/gitignore.j2",
 }
 
 # ── Profile-specific verify template mapping ───────────────────────────────────
 PROFILE_VERIFY_TEMPLATES: dict[str, str] = {
-    "pytorch-cuda":        "verify_torch.sh",
-    "tf-gpu":              "verify_tf.sh",
-    "yolov8":              "verify_torch.sh",
-    "stable-diffusion":    "verify_torch.sh",
-    "opencv-beginner":     "verify_opencv.sh",
+    "pytorch-cuda": "verify_torch.sh",
+    "tf-gpu": "verify_tf.sh",
+    "yolov8": "verify_torch.sh",
+    "stable-diffusion": "verify_torch.sh",
+    "opencv-beginner": "verify_opencv.sh",
 }
 
-def _build_jinja_env() -> Environment:
-    return Environment(
+
+
+def _build_jinja_env() -> SandboxedEnvironment:
+    return SandboxedEnvironment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
         undefined=StrictUndefined,
+        autoescape=False,
+    )
+
+@lru_cache(maxsize=16)
+def _get_jinja_env(custom_template_dir: Path | None) -> SandboxedEnvironment:
+    loaders = []
+    if custom_template_dir:
+        resolved_path = Path(custom_template_dir)
+        if resolved_path.exists() and resolved_path.is_dir():
+            loaders.append(FileSystemLoader(str(resolved_path)))
+        else:
+            logging.getLogger(__name__).warning(
+                "Configured custom_template_dir '%s' does not exist or is not a directory. "
+                "Falling back to defaults.",
+                custom_template_dir,
+            )
+    loaders.append(FileSystemLoader(str(TEMPLATES_DIR)))
+
+    return SandboxedEnvironment(
+        loader=ChoiceLoader(loaders),
+
+        undefined=StrictUndefined,
         autoescape=select_autoescape(enabled_extensions=(), default_for_string=False),
+
         trim_blocks=True,
         lstrip_blocks=True,
     )
 
-
-_JINJA_ENV = _build_jinja_env()
+_JINJA_ENV = _get_jinja_env(None)
 
 
 class TemplateRenderer:
@@ -85,7 +117,9 @@ class TemplateRenderer:
                 f"Known: {list(TEMPLATE_MAP.keys())}"
             )
 
-        template = _JINJA_ENV.get_template(template_path)
+        settings = get_settings()
+        env = _get_jinja_env(settings.custom_template_dir)
+        template = env.get_template(template_path)
         rendered = template.render(**context.to_dict())
         safe_content = validate_rendered_output(rendered, template_name=template_path)
 

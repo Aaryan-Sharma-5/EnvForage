@@ -24,6 +24,28 @@ info()    { echo -e "${GREEN}[EnvForge]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error()   { echo -e "${RED}[ERROR]${NC} $1" >&2; exit 1; }
 
+{% if use_micromamba %}
+# ── Bootstrap micromamba ─────────────────────────────────────────────────────
+info "Bootstrapping micromamba..."
+if ! command -v micromamba >/dev/null 2>&1; then
+    mkdir -p ~/.local/bin
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -f - --strip-components=1 -C ~/.local/bin/
+    chmod +x ~/.local/bin/micromamba
+    export PATH="$HOME/.local/bin:$PATH"
+    info "micromamba installed."
+else
+    info "micromamba already installed: $(micromamba --version)"
+fi
+
+# ── Micromamba environment ───────────────────────────────────────────────────
+ENV_PREFIX="$PWD/.venv"
+if [[ ! -d "$ENV_PREFIX" ]]; then
+    info "Creating micromamba environment in $ENV_PREFIX..."
+    micromamba create -p "$ENV_PREFIX" -c conda-forge python={{ python_version }} -y
+fi
+info "Micromamba environment ready: $ENV_PREFIX"
+RUN_CMD="micromamba run -p $ENV_PREFIX "
+{% else %}
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
 info "Starting pre-flight checks..."
 
@@ -70,9 +92,23 @@ fi
 # Activate virtual environment
 source "$VENV_DIR/bin/activate"
 info "Virtual environment activated: $VENV_DIR"
+RUN_CMD=""
+{% endif %}
 
 # Upgrade pip inside venv
-pip install --quiet --upgrade pip
+${RUN_CMD}pip install --quiet --upgrade pip
+
+{% if use_uv %}
+# ── Bootstrap uv ─────────────────────────────────────────────────────────────
+info "Bootstrapping uv package manager..."
+if ! command -v uv >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    source "$HOME/.local/bin/env"
+    info "uv installed successfully."
+else
+    info "uv already installed: $(uv --version)"
+fi
+{% endif %}
 
 # ── Package installation ──────────────────────────────────────────────────────
 info "Installing packages..."
@@ -81,7 +117,11 @@ info "Installing packages..."
 # PyTorch CUDA index (required for CUDA-specific builds)
 TORCH_INDEX="https://download.pytorch.org/whl/cu{{ cuda_version | replace('.', '') }}"
 
-pip install \
+{% if use_uv %}
+${RUN_CMD}uv pip install \
+{% else %}
+${RUN_CMD}pip install \
+{% endif %}
 {% for pkg in packages %}
 {% if pkg.cuda_variant %}
     "{{ pkg.pip_spec }}" \
@@ -90,7 +130,11 @@ pip install \
     --index-url "$TORCH_INDEX"
 
 # Install remaining packages from PyPI
-pip install \
+{% if use_uv %}
+${RUN_CMD}uv pip install \
+{% else %}
+${RUN_CMD}pip install \
+{% endif %}
 {% for pkg in packages %}
 {% if not pkg.cuda_variant %}
     "{{ pkg.pip_spec }}" \
@@ -99,7 +143,11 @@ pip install \
     --quiet
 {% else %}
 # CPU-only installation
-pip install \
+{% if use_uv %}
+${RUN_CMD}uv pip install \
+{% else %}
+${RUN_CMD}pip install \
+{% endif %}
 {% for pkg in packages %}
     "{{ pkg.pip_spec }}" \
 {% endfor %}
@@ -110,13 +158,24 @@ pip install \
 info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 info "✓ EnvForge setup complete!"
 info "  Profile : {{ profile.name }}"
-info "  Python  : $(python --version)"
+info "  Python  : $(${RUN_CMD}python --version)"
+{% if use_micromamba %}
+info "  Env     : micromamba ($ENV_PREFIX)"
+{% elif use_uv %}
+info "  Installer: uv (fast)"
+{% else %}
+info "  Installer: pip"
+{% endif %}
 {% if cuda_version %}
 info "  CUDA    : {{ cuda_version }}"
 {% endif %}
-info "  Venv    : $PWD/$VENV_DIR"
+info "  Venv    : $PWD/.venv"
 info ""
-info "  Activate with:  source $VENV_DIR/bin/activate"
+{% if use_micromamba %}
+info "  Activate with:  micromamba activate -p .venv"
+{% else %}
+info "  Activate with:  source .venv/bin/activate"
+{% endif %}
 info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 {% if warnings %}
 

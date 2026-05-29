@@ -7,9 +7,6 @@ Handles: Linux, Windows, WSL2.
 from __future__ import annotations
 
 import platform
-import re
-import subprocess
-import sys
 
 from envforge_agent.schemas import OSInfo
 

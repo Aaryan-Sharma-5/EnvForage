@@ -205,6 +205,7 @@ class CompatibilityResolver:
                 override_version=override_version,
                 python_version=python_version,
                 cuda_version=cuda_version,
+                rocm_version=rocm_version,
             )
 
         # Use version from profile spec (treat as exact version if no range)

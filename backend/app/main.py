@@ -1,14 +1,19 @@
 """
 FastAPI application factory and lifespan management.
 """
+
+import asyncio
+import typing
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.api.v1 import (
+    authentication,
     compatibility,
     diagnose,
     profiles,
@@ -17,18 +22,21 @@ from app.api.v1 import (
     troubleshoot,
     verify,
 )
+from app.cache import get_redis_client
 from app.config import get_settings
+from app.core.handlers import register_exception_handlers
+from app.database import AsyncSessionLocal
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application startup and shutdown."""
-    # Startup
     settings = get_settings()
-    print(f"[START] EnvForge API {settings.app_version} starting [{settings.environment}]")
+    print(
+        f"[START] EnvForge API {settings.app_version} starting [{settings.environment}]"
+    )
     yield
-    # Shutdown
-    print("[SHUTDOWN] EnvForge API shutting down")
+    print("🛑 EnvForge API shutting down")
 
 
 def create_app() -> FastAPI:
@@ -48,6 +56,8 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    register_exception_handlers(app)
+
     # ── CORS ─────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
@@ -65,11 +75,48 @@ def create_app() -> FastAPI:
     app.include_router(repair.router, prefix="/api/v1", tags=["ai"])
     app.include_router(verify.router, prefix="/api/v1", tags=["verify"])
     app.include_router(compatibility.router, prefix="/api/v1", tags=["compatibility"])
+    app.include_router(authentication.router, prefix="/api/v1", tags=["auth"])
 
     # ── Health check ──────────────────────────────────────────
     @app.get("/health", include_in_schema=False)
-    async def health() -> dict[str, Any]:
-        return {"status": "healthy", "service": settings.app_name, "version": settings.app_version}
+    async def health() -> JSONResponse:
+        db_status = "ok"
+        redis_status = "ok"
+        overall = "healthy"
+
+        try:
+            async with asyncio.timeout(2):
+                async with AsyncSessionLocal() as session:
+                    await session.execute(text("SELECT 1"))
+        except Exception:
+            db_status = "unavailable"
+            overall = "degraded"
+
+        try:
+            async with asyncio.timeout(1):  # Enforce 1s timeout to prevent TCP blackhole hang
+                redis = await get_redis_client()
+                if redis is None:
+                    redis_status = "not_configured"
+                else:
+                    await typing.cast(typing.Any, redis).ping()
+        except TimeoutError:
+            redis_status = "unavailable"
+            overall = "degraded"
+        except Exception:
+            redis_status = "unavailable"
+            overall = "degraded"
+
+        return JSONResponse(
+            status_code=200 if overall == "healthy" else 503,
+            content={
+                "status": overall,
+                "version": settings.app_version,
+                "services": {
+                    "database": db_status,
+                    "redis": redis_status,
+                },
+            },
+        )
 
     return app
 

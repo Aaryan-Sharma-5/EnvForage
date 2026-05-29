@@ -14,6 +14,9 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://test:test@localhost:5432/test",
 )
+# Provide a deterministic admin key for tests so require_admin dependency
+# does not return 503 (unconfigured) during the test suite.
+os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-for-ci")
 import pytest
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -72,8 +75,8 @@ def new_result_processor(self, dialect, coltype):
         return process
     return _orig_result_processor(self, dialect, coltype)
 
-ARRAY.bind_processor = new_bind_processor
-ARRAY.result_processor = new_result_processor
+ARRAY.bind_processor = new_bind_processor # type: ignore[method-assign]
+ARRAY.result_processor = new_result_processor # type: ignore[method-assign]
 
 # Use in-memory SQLite for unit tests (no Postgres needed)
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"

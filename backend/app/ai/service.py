@@ -7,7 +7,10 @@ Pipeline:
     4. Persist session + suggestions to DB for audit
     5. Return structured TroubleshootResponse
 """
+
+import asyncio
 import hashlib
+import json
 import logging
 import time
 import uuid
@@ -17,14 +20,11 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.models import (
-    TroubleshootRequest,
-    TroubleshootResponse,
-)
-from app.ai.prompts.system import TROUBLESHOOT_SYSTEM_PROMPT
+from app.ai.models import SuggestedFix, TroubleshootRequest, TroubleshootResponse
+from app.ai.prompts.system import LOW_CONFIDENCE_GATE, TROUBLESHOOT_SYSTEM_PROMPT
 from app.ai.prompts.troubleshoot import TroubleshootPromptBuilder
 from app.ai.providers import get_provider
-from app.ai.providers.base import LLMProviderError
+from app.ai.providers.base import LLMProvider, LLMProviderError
 from app.models.ai_session import AIAuditLog, AISession, AISuggestion
 from app.templates.safety import SafetyViolationError, validate_rendered_output
 
@@ -45,7 +45,8 @@ class AITroubleshootService:
         response = await service.troubleshoot(request, db_session)
     """
 
-    def __init__(self) -> None:
+    def __init__(self,provider: LLMProvider | None = None) -> None:
+        self._provider=provider
         self._prompt_builder = TroubleshootPromptBuilder()
 
     async def troubleshoot(
@@ -80,7 +81,7 @@ class AITroubleshootService:
         logger.info("Troubleshoot prompt built (%d chars)", len(user_message))
 
         # ── Step 2: Call LLM ──────────────────────────────────────────────
-        provider = get_provider()
+        provider = self._provider if self._provider is not None else get_provider()
         provider_name = type(provider).__name__
         model_name = getattr(provider, "model", "unknown")
 
@@ -96,9 +97,14 @@ class AITroubleshootService:
             # Log the failed attempt
             latency_ms = int((time.monotonic() - start_time) * 1000)
             await self._log_audit(
-                db, session_id=None, input_hash=input_hash,
-                safety_passed=False, safety_violation=f"LLM error: {exc.reason}",
-                provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+                db,
+                session_id=None,
+                input_hash=input_hash,
+                safety_passed=False,
+                safety_violation=f"LLM error: {exc.reason}",
+                provider=provider_name,
+                tokens_used=0,
+                latency_ms=latency_ms,
             )
             raise
 
@@ -111,18 +117,31 @@ class AITroubleshootService:
             safety_violation = str(exc)
             latency_ms = int((time.monotonic() - start_time) * 1000)
             await self._log_audit(
-                db, session_id=None, input_hash=input_hash,
-                safety_passed=False, safety_violation=safety_violation,
-                provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+                db,
+                session_id=None,
+                input_hash=input_hash,
+                safety_passed=False,
+                safety_violation=safety_violation,
+                provider=provider_name,
+                tokens_used=0,
+                latency_ms=latency_ms,
             )
             raise
 
         # ── Step 4: Enrich response ───────────────────────────────────────
         llm_result.session_id = session_id
         llm_result.repair_script_available = any(
-            fix.repair_template_id is not None
-            for fix in llm_result.suggested_fixes
+            fix.repair_template_id is not None for fix in llm_result.suggested_fixes
         )
+
+        # ── Step 4b: Confidence gating ────────────────────────────────────
+        accepted_fixes, suppressed_count = self._gate_fixes(
+            llm_result.suggested_fixes, session_id
+        )
+        llm_result.suggested_fixes = accepted_fixes
+        llm_result.suppressed_fix_count = suppressed_count
+        llm_result.confidence = self._recalculate_overall_confidence(accepted_fixes)
+        self._log_confidence_audit(session_id, accepted_fixes, suppressed_count)
 
         # ── Step 5: Persist to DB ─────────────────────────────────────────
         latency_ms = int((time.monotonic() - start_time) * 1000)
@@ -134,49 +153,111 @@ class AITroubleshootService:
 
         total_tokens = token_usage.get("total_tokens", 0) if token_usage else 0
 
-        await self._persist_session(
-            db, session_id, request, llm_result, provider_name, model_name,
-        )
+        persist_failed = False
+        try:
+            await self._persist_session(
+                db,
+                session_id,
+                request,
+                llm_result,
+                provider_name,
+                model_name,
+            )
+        except Exception:
+            persist_failed = True
+
         await self._log_audit(
-            db, session_id=session_id, input_hash=input_hash,
-            safety_passed=True, safety_violation=None,
-            provider=provider_name, tokens_used=total_tokens,
+            db,
+            session_id=session_id,
+            input_hash=input_hash,
+            safety_passed=not persist_failed,
+            safety_violation="DB persistence failure" if persist_failed else None,
+            provider=provider_name,
+            tokens_used=total_tokens,
             latency_ms=latency_ms,
         )
 
         logger.info(
             "Troubleshoot complete: session=%s, fixes=%d, confidence=%.2f, latency=%dms",
-            session_id, len(llm_result.suggested_fixes),
-            llm_result.confidence, latency_ms,
+            session_id,
+            len(llm_result.suggested_fixes),
+            llm_result.confidence,
+            latency_ms,
         )
 
         return llm_result
-
     async def stream_troubleshoot(
         self,
         request: TroubleshootRequest,
         db: AsyncSession,
     ) -> AsyncIterator[str]:
         """
-        Stream the AI troubleshooting response.
-        This method skips database persistence for individual tokens to
-        minimize latency, but still builds the full prompt and uses the
-        configured LLM provider in streaming mode.
+        Stream the AI troubleshooting response with safety validation.
+
+        All provider tokens are buffered until the response is complete, then
+        the full response is deserialised and validated through the safety
+        filter before any bytes are yielded to the caller. This matches the
+        safety guarantee of the non-streaming path.
         """
+        session_id = str(uuid.uuid4())
+        start_time = time.monotonic()
+        input_hash = self._hash_input(request)
+
         history = None
         if request.session_id:
             history = await self._fetch_session_history(db, request.session_id)
 
         user_message = self._prompt_builder.build(request, history=history)
         provider = get_provider()
+        provider_name = type(provider).__name__
 
-        logger.info("Starting troubleshoot stream (provider=%s)", type(provider).__name__)
+        logger.info("Starting troubleshoot stream (provider=%s)", provider_name)
 
+        chunks: list[str] = []
         async for chunk in provider.stream(
             system_prompt=TROUBLESHOOT_SYSTEM_PROMPT,
             user_message=user_message,
             response_model=TroubleshootResponse,
         ):
+            chunks.append(chunk)
+
+        full_response = "".join(chunks)
+
+        try:
+            llm_result = TroubleshootResponse.model_validate_json(full_response)
+            self._validate_response_safety(llm_result)
+        except SafetyViolationError as exc:
+            latency_ms = int((time.monotonic() - start_time) * 1000)
+            await self._log_audit(
+                db,
+                session_id=None,
+                input_hash=input_hash,
+                safety_passed=False,
+                safety_violation=str(exc),
+                provider=provider_name,
+                tokens_used=0,
+                latency_ms=latency_ms,
+            )
+            logger.warning("Safety violation in streamed response: %s", exc)
+            yield (
+                '{"error":"SAFETY_VIOLATION",'
+                '"message":"Response blocked by safety filter."}'
+            )
+            return
+
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+        await self._log_audit(
+            db,
+            session_id=session_id,
+            input_hash=input_hash,
+            safety_passed=True,
+            safety_violation=None,
+            provider=provider_name,
+            tokens_used=0,
+            latency_ms=latency_ms,
+        )
+
+        for chunk in chunks:
             yield chunk
 
     async def _fetch_session_history(
@@ -226,34 +307,75 @@ class AITroubleshootService:
         model_name: str,
     ) -> None:
         """Persist the AI session and suggestions to the database."""
-        try:
-            db_session = AISession(
-                id=uuid.UUID(session_id),
-                provider=provider_name,
-                model=model_name,
-                created_at=datetime.utcnow(),
-            )
-            db.add(db_session)
-            await db.flush()
 
-            for fix in response.suggested_fixes:
-                db_suggestion = AISuggestion(
-                    id=uuid.uuid4(),
-                    session_id=db_session.id,
-                    step_number=fix.step,
-                    title=fix.title,
-                    description=fix.description,
-                    severity=fix.severity,
-                    safe_commands=fix.safe_commands if fix.safe_commands else None,
-                    template_id=fix.repair_template_id,
+        max_retries = 3
+
+        for attempt in range(max_retries):
+            try:
+                db_session = AISession(
+                    id=uuid.UUID(session_id),
+                    provider=provider_name,
+                    model=model_name,
                     created_at=datetime.utcnow(),
                 )
-                db.add(db_suggestion)
 
-        except Exception as exc:
-            logger.error("Failed to persist AI session: %s", exc)
-            # Don't fail the request if persistence fails
-            # The response is still valid
+                db.add(db_session)
+
+                await db.flush()
+
+                for fix in response.suggested_fixes:
+                    db_suggestion = AISuggestion(
+                        id=uuid.uuid4(),
+                        session_id=db_session.id,
+                        step_number=fix.step,
+                        title=fix.title,
+                        description=fix.description,
+                        severity=fix.severity,
+                        safe_commands=(
+                            fix.safe_commands if fix.safe_commands else None,
+                        ),
+                        template_id=fix.repair_template_id,
+                        created_at=datetime.utcnow(),
+                    )
+
+                    db.add(db_suggestion)
+
+                return
+
+            except Exception as exc:
+                await db.rollback()
+                # 1. Use logger.exception to capture the full traceback
+
+                logger.exception(
+                    "Failed to persist AI session " "(attempt %d/%d): %s",
+                    attempt + 1,
+                    max_retries,
+                    exc,
+                )
+
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        "Retrying AI session persistence" "for session %s",
+                        session_id,
+                    )
+
+                    await asyncio.sleep(1)
+                else:
+                      # 2. On final permanent failure, log critical and raise so troubleshoot() can update the audit log
+                    logger.critical(
+                        "AI session persistence permanently failed for session %s",
+                        session_id,
+                    )
+                    raise
+
+
+        logger.critical(
+            "AI session persistence permanently failed" " for session %s",
+            session_id,
+        )
+
+        # Don't fail the request if persistence fails
+        # The response is still valid
 
     async def _log_audit(
         self,
@@ -282,4 +404,74 @@ class AITroubleshootService:
             )
             db.add(log)
         except Exception as exc:
-            logger.error("Failed to write audit log: %s", exc)
+            logger.exception("Failed to write audit log to database: %s", exc)
+
+
+#confidence gating
+
+    def _gate_fixes(
+        self, fixes: list[SuggestedFix], session_id: str
+    ) -> tuple[list[SuggestedFix], int]:
+        """Suppress fixes whose confidence_score is below LOW_CONFIDENCE_GATE."""
+        accepted, suppressed = [], 0
+        for fix in fixes:
+            if (fix.confidence_score or 0.0) < LOW_CONFIDENCE_GATE:
+                logger.warning(
+                    "session=%s step=%d '%s' suppressed (score=%.2f < gate=%.2f)",
+                    session_id, fix.step, fix.title,
+                    fix.confidence_score, LOW_CONFIDENCE_GATE,
+                )
+                suppressed += 1
+            else:
+                accepted.append(fix)
+        return accepted, suppressed
+
+    #Overall confidence recalculation
+
+    def _recalculate_overall_confidence(self, fixes: list[SuggestedFix]) -> float:
+        """
+        Weighted average of per-fix scores.
+        CRITICAL=3×, WARNING=2×, INFO=1× weight.
+        Returns 0.0 if no fixes present.
+        """
+        if not fixes:
+            return 0.0
+        weight_map = {"CRITICAL": 3.0, "WARNING": 2.0, "INFO": 1.0}
+        total_w, weighted_sum = 0.0, 0.0
+        for fix in fixes:
+            w = weight_map.get(fix.severity, 1.0)
+            weighted_sum += (fix.confidence_score or 0.0) * w
+            total_w += w
+        return round(weighted_sum / total_w, 4)
+
+    #Audit logging
+
+    def _log_confidence_audit(
+        self, session_id: str, fixes: list[SuggestedFix], suppressed: int
+    ) -> None:
+        for fix in fixes:
+            logger.info(
+                "CONFIDENCE_AUDIT session=%s step=%d level=%s score=%.2f matrix_backed=%s severity=%s",
+                session_id, fix.step, fix.confidence_level.value if fix.confidence_level else "unknown",
+                fix.confidence_score, fix.is_matrix_backed, fix.severity,
+            )
+        if suppressed:
+            logger.info("CONFIDENCE_AUDIT session=%s suppressed_fixes=%d", session_id, suppressed)
+
+    #Prompt builder
+
+    def _build_user_message(self, request: TroubleshootRequest) -> str:
+        parts = [
+            "## Diagnostic Report", json.dumps(request.diagnostic, indent=2), "",
+            "## Verification Results", json.dumps(request.verification, indent=2), "",
+            "## Environment Profile", json.dumps(request.profile, indent=2),
+        ]
+        if request.user_description.strip():
+            parts += ["", "## User Description", request.user_description.strip()]
+        parts += [
+            "", "## Instructions",
+            f"Return a TroubleshootResponse JSON. Max {request.max_words} words. "
+            "Populate confidence_level, confidence_score, is_matrix_backed, "
+            "uncertainty_reason, and fallback_recommendation for EVERY SuggestedFix.",
+        ]
+        return "\n".join(parts)

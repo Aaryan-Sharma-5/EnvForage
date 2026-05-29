@@ -12,9 +12,9 @@ OSTarget = Literal["LINUX", "WSL", "WIN"]
 
 # Map OS target to the valid script formats it supports
 OS_SCRIPT_FORMATS: dict[str, list[str]] = {
-    "LINUX": ["setup.sh", "requirements.txt", "Dockerfile", "devcontainer.json"],
-    "WSL":   ["setup.sh", "requirements.txt", "Dockerfile", "devcontainer.json"],
-    "WIN":   ["setup.ps1", "requirements.txt", "devcontainer.json"],
+    "LINUX": ["setup.sh", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json"],
+    "WSL":   ["setup.sh", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json"],
+    "WIN": ["setup.ps1", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json"],
 }
 
 # ── CUDA / GPU rules ──────────────────────────────────────────────────────────

@@ -91,7 +91,7 @@ Generate a set of setup scripts for a profile.
   "overrides": {
     "torch": "2.2.0"
   },
-  "output_formats": ["setup.sh", "requirements.txt", "Dockerfile"]
+  "output_formats": ["setup.sh", "environment.yml", "Dockerfile"]
 }
 ```
 

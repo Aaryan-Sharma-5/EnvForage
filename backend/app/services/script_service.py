@@ -1,26 +1,145 @@
 """
 Script generation service — orchestrates Compatibility Engine + Template Engine.
 """
+import hashlib
+import json
+import logging
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.compatibility.models import PackageConstraint
+from app.cache import get_redis_client
+from app.compatibility.models import (
+    PackageConstraint,
+    ResolvedEnvironment,
+)
+from app.compatibility.models import (
+    ResolvedPackage as CompatibilityResolvedPackage,
+)
 from app.compatibility.resolver import CompatibilityResolver
+from app.config import get_settings
 from app.models.profile import EnvironmentProfile
 from app.models.script_job import GeneratedScript, ScriptGenerationJob
 from app.schemas.script import (
     GenerationRequest,
     GenerationResponse,
-    ResolvedPackage,
     ScriptPreview,
+)
+from app.schemas.script import (
+    ResolvedPackage as ResponseResolvedPackage,
 )
 from app.templates.engine import TemplateRenderer
 from app.templates.models import TemplateContext
 
 _resolver = CompatibilityResolver()
 _renderer = TemplateRenderer()
+_logger = logging.getLogger(__name__)
+
+_RESOLVER_CACHE_PREFIX = "compatibility_resolver:v1"
+
+
+def _resolver_cache_ttl_seconds() -> int:
+    return max(get_settings().resolver_cache_ttl_seconds, 1)
+
+
+def _resolver_cache_key(
+    profile: EnvironmentProfile,
+    request: GenerationRequest,
+    constraints: list[PackageConstraint],
+) -> str:
+    """Build a stable cache key for deterministic resolver inputs."""
+    payload = {
+        "profile_slug": profile.slug,
+        "target_os": request.target_os,
+        "python_version": request.python_version,
+        "cuda_version": request.cuda_version,
+        "overrides": request.overrides or {},
+        "os_support": sorted(profile.os_support),
+        "cuda_required": profile.cuda_required,
+        "packages": [
+            {
+                "name": constraint.name,
+                "version_spec": constraint.version_spec,
+                "cuda_variant": constraint.cuda_variant,
+            }
+            for constraint in constraints
+        ],
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return f"{_RESOLVER_CACHE_PREFIX}:{digest}"
+
+
+def _resolved_environment_from_dict(data: dict[str, Any]) -> ResolvedEnvironment:
+    return ResolvedEnvironment(
+        python_version=data["python_version"],
+        cuda_version=data.get("cuda_version"),
+        rocm_version=data.get("rocm_version"),
+        target_os=data["target_os"],
+        packages=[
+            CompatibilityResolvedPackage(
+                name=package["name"],
+                version=package["version"],
+                cuda_variant=package.get("cuda_variant"),
+            )
+            for package in data.get("packages", [])
+        ],
+        warnings=list(data.get("warnings", [])),
+    )
+
+
+async def _get_cached_resolved_environment(
+    cache_key: str,
+) -> ResolvedEnvironment | None:
+    try:
+        redis = await get_redis_client()
+    except Exception as exc:  # pragma: no cover - defensive cache fallback
+        _logger.warning("Redis resolver cache client unavailable: %s", exc)
+        return None
+
+    if redis is None:
+        return None
+
+    try:
+        cached = await redis.get(cache_key)
+    except Exception as exc:  # pragma: no cover - defensive cache fallback
+        _logger.warning("Redis resolver cache read failed: %s", exc)
+        return None
+
+    if cached is None:
+        return None
+
+    try:
+        return _resolved_environment_from_dict(json.loads(cached))
+    except (KeyError, TypeError, ValueError) as exc:
+        _logger.warning("Ignoring invalid resolver cache payload: %s", exc)
+        return None
+
+
+async def _cache_resolved_environment(
+    cache_key: str,
+    resolved: ResolvedEnvironment,
+) -> None:
+    try:
+        redis = await get_redis_client()
+    except Exception as exc:  # pragma: no cover - defensive cache fallback
+        _logger.warning("Redis resolver cache client unavailable: %s", exc)
+        return
+
+    if redis is None:
+        return
+
+    try:
+        await redis.set(
+            cache_key,
+            json.dumps(resolved.to_dict(), sort_keys=True),
+            ex=_resolver_cache_ttl_seconds(),
+        )
+    except Exception as exc:  # pragma: no cover - defensive cache fallback
+        _logger.warning("Redis resolver cache write failed: %s", exc)
 
 
 async def generate_scripts(
@@ -47,16 +166,20 @@ async def generate_scripts(
     ]
 
     # Step 2: Resolve compatible versions
-    resolved = _resolver.resolve(
-        packages=constraints,
-        python_version=request.python_version,
-        cuda_version=request.cuda_version,
-        target_os=request.target_os,
-        profile_slug=profile.slug,
-        os_support=list(profile.os_support),
-        cuda_required=profile.cuda_required,
-        overrides=request.overrides,
-    )
+    cache_key = _resolver_cache_key(profile, request, constraints)
+    resolved = await _get_cached_resolved_environment(cache_key)
+    if resolved is None:
+        resolved = _resolver.resolve(
+            packages=constraints,
+            python_version=request.python_version,
+            cuda_version=request.cuda_version,
+            target_os=request.target_os,
+            profile_slug=profile.slug,
+            os_support=list(profile.os_support),
+            cuda_required=profile.cuda_required,
+            overrides=request.overrides,
+        )
+        await _cache_resolved_environment(cache_key, resolved)
 
     # Step 3: Render templates
     ctx = TemplateContext(
@@ -64,6 +187,8 @@ async def generate_scripts(
         profile_name=profile.name,
         resolved=resolved,
         warnings=resolved.warnings,
+        use_uv=request.use_uv,
+        use_micromamba=request.use_micromamba,
     )
     render_results = _renderer.render_all(request.output_formats, ctx)
 
@@ -101,7 +226,7 @@ async def generate_scripts(
         python_version=request.python_version,
         cuda_version=request.cuda_version,
         resolved_packages=[
-            ResolvedPackage(
+            ResponseResolvedPackage(
                 name=p.name,
                 version=p.version,
                 cuda_variant=p.cuda_variant,

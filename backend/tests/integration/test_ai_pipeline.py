@@ -14,6 +14,19 @@ from app.ai.prompts.troubleshoot import TroubleshootPromptBuilder
 from app.services.repair_service import RepairService, RepairTemplateNotFoundError
 from app.templates.safety import SafetyViolationError, validate_rendered_output
 
+# Per-template valid params -- mirrors unit tests so both suites stay in sync
+_TEMPLATE_PARAMS: dict[str, dict] = {
+    "repair_cuda_upgrade": {"target_cuda_version": "12.1"},
+    "repair_python_install": {"target_python_version": "3.11"},
+    "repair_driver_update": {"min_driver_version": "525.0"},
+    "repair_venv_recreate": {"python_bin": "python3", "venv_dir": ".venv"},
+    "repair_pip_reinstall": {
+        "packages": [
+            {"name": "torch", "version": "2.3.0", "pip_spec": "torch==2.3.0", "index_url": None},
+        ],
+    },
+}
+
 
 @pytest.fixture
 def repair_service():
@@ -47,16 +60,8 @@ class TestEndToEndRepairPipeline:
     @pytest.mark.parametrize("template_id", AVAILABLE_REPAIR_TEMPLATES)
     def test_every_template_passes_safety_filter(self, repair_service, template_id):
         """All built-in repair templates MUST pass the safety filter."""
-        result = repair_service.render_repair(template_id, {
-            "target_cuda_version": "12.1",
-            "target_python_version": "3.11",
-            "min_driver_version": "525.0",
-            "python_bin": "python3",
-            "venv_dir": ".venv",
-            "packages": [
-                {"name": "torch", "version": "2.3.0", "pip_spec": "torch==2.3.0", "index_url": None},
-            ],
-        })
+        params = _TEMPLATE_PARAMS[template_id]
+        result = repair_service.render_repair(template_id, params)
         # If we got here, the safety filter already passed (it's called inside render_repair)
         # But let's double-check by running it again explicitly
         validated = validate_rendered_output(result["content"], template_name=template_id)

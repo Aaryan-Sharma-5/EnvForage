@@ -1,8 +1,9 @@
 """Script generation endpoint — POST /api/v1/scripts/generate."""
+
 import io
 import zipfile
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import DB
@@ -11,16 +12,34 @@ from app.compatibility.errors import (
     UnknownVersionError,
     UnsupportedOSError,
 )
+from app.middleware.rate_limit import general_rate_limit
 from app.schemas.script import GenerationRequest, GenerationResponse
 from app.services import profile_service, script_service
 
 router = APIRouter()
 
 
-@router.post("/scripts/generate", response_model=GenerationResponse, status_code=201)
+@router.post(
+    "/scripts/generate",
+    response_model=GenerationResponse,
+    status_code=201,
+    summary="Generate environment setup scripts",
+    description=(
+        "Generate platform-specific setup scripts for an environment profile "
+        "after validating compatibility constraints."
+    ),
+    tags=["Scripts"],
+    responses={
+        201: {"description": "Scripts generated successfully"},
+        404: {"description": "Profile not found"},
+        409: {"description": "Compatibility validation failed"},
+        422: {"description": "Request validation error"},
+    },
+)
 async def generate_scripts(
     request: GenerationRequest,
     db: DB,
+    _rate_limit: None = Depends(general_rate_limit),
 ) -> GenerationResponse:
     """
     Generate a set of setup scripts for a given profile and target configuration.
@@ -78,8 +97,28 @@ async def generate_scripts(
     return result
 
 
-@router.get("/scripts/{job_id}/download")
-async def download_scripts(job_id: str, db: DB) -> StreamingResponse:
+@router.get(
+    "/scripts/{job_id}/download",
+    summary="Download generated script bundle",
+    description=(
+        "Download a ZIP archive containing generated setup scripts "
+        "and manifest information."
+    ),
+    tags=["Scripts"],
+    responses={
+        200: {"description": "Script ZIP archive downloaded successfully"},
+        400: {"description": "Invalid script generation job ID"},
+        404: {"description": "Script generation job not found"},
+    },
+)
+async def download_scripts(
+    db: DB,
+    job_id: str = Path(
+        ...,
+        description="Script generation job UUID.",
+        examples=["550e8400-e29b-41d4-a716-446655440000"],
+    ),
+) -> StreamingResponse:
     """
     Download a generated script bundle as a ZIP file.
     """
@@ -95,6 +134,7 @@ async def download_scripts(job_id: str, db: DB) -> StreamingResponse:
         raise HTTPException(status_code=400, detail="Invalid job_id format")
 
     from sqlalchemy.orm import selectinload
+
     result = await db.execute(
         select(ScriptGenerationJob)
         .where(ScriptGenerationJob.id == job_uuid)
@@ -123,5 +163,8 @@ async def download_scripts(job_id: str, db: DB) -> StreamingResponse:
     return StreamingResponse(
         zip_buffer,
         media_type="application/zip",
-        headers={"Content-Disposition": f"attachment; filename=envforge_{job_id[:8]}.zip"},
+        headers={
+            "Content-Disposition": f"attachment; filename=envforge_{job_id[:8]}.zip"
+        },
     )
+

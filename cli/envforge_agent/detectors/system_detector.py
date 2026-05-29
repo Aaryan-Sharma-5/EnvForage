@@ -7,7 +7,7 @@ Never raises — falls back to zeroes on any failure.
 from __future__ import annotations
 
 import platform
-
+import shutil
 import psutil
 
 from envforge_agent.schemas import CPUInfo, RAMInfo
@@ -70,3 +70,19 @@ def _get_cpu_brand() -> str:
     # Universal fallback: platform.processor() (less specific but always available)
     brand = platform.processor()
     return brand if brand else "Unknown CPU"
+
+def detect_disk() -> dict[str, float]:
+    """
+    Detect available disk space using shutil.
+
+    Returns:
+        dict with total_gb and free_gb (rounded to 2 decimal places).
+        Falls back to zeroes on any failure.
+    """
+    try:
+        usage = shutil.disk_usage("/")
+        total_gb = round(usage.total / (1024 ** 3), 2)
+        free_gb = round(usage.free / (1024 ** 3), 2)
+        return {"total_gb": total_gb, "free_gb": free_gb}
+    except Exception:
+        return {"total_gb": 0.0, "free_gb": 0.0}

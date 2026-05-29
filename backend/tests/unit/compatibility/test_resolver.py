@@ -3,16 +3,81 @@ Unit tests for the Compatibility Resolver.
 No mocks for matrix data — the matrix IS the ground truth.
 """
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from app.compatibility.errors import (
     IncompatibilityError,
     UnknownVersionError,
     UnsupportedOSError,
 )
+from app.compatibility.matrix.cuda import CUDA_MATRIX
+from app.compatibility.matrix.python import PYTHON_MATRIX
 from app.compatibility.models import PackageConstraint
 from app.compatibility.resolver import CompatibilityResolver
 
 R = CompatibilityResolver()
+
+KNOWN_FRAMEWORK_VERSIONS = [
+    (framework, entry.version)
+    for framework, entries in PYTHON_MATRIX.items()
+    for entry in entries
+]
+VERSION_STRINGS = st.one_of(
+    st.sampled_from(["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]),
+    st.from_regex(r"\d{1,2}\.\d{1,2}(?:\.\d{1,2})?", fullmatch=True),
+    st.sampled_from(["", "latest", "cu118", "12.x", "3.11-dev"]),
+)
+PACKAGE_CONSTRAINTS = st.one_of(
+    st.sampled_from(KNOWN_FRAMEWORK_VERSIONS).map(
+        lambda package: PackageConstraint(package[0], package[1])
+    ),
+    st.builds(
+        PackageConstraint,
+        name=st.sampled_from(["torch", "tensorflow", "jax", "ultralytics"]),
+        version_spec=VERSION_STRINGS,
+    ),
+    st.builds(
+        PackageConstraint,
+        name=st.sampled_from(["matplotlib", "numpy", "scikit-learn"]),
+        version_spec=VERSION_STRINGS,
+    ),
+)
+
+
+@settings(max_examples=1000, deadline=None)
+@given(
+    packages=st.lists(PACKAGE_CONSTRAINTS, min_size=0, max_size=4),
+    python_version=VERSION_STRINGS,
+    cuda_version=st.one_of(st.none(), st.sampled_from(list(CUDA_MATRIX)), VERSION_STRINGS),
+    target_os=st.sampled_from(["LINUX", "WSL", "WIN"]),
+    cuda_required=st.booleans(),
+)
+def test_resolve_handles_generated_version_inputs(
+    packages,
+    python_version,
+    cuda_version,
+    target_os,
+    cuda_required,
+):
+    """Generated inputs either resolve or fail with a structured compatibility error."""
+    try:
+        result = R.resolve(
+            packages=packages,
+            python_version=python_version,
+            cuda_version=cuda_version,
+            target_os=target_os,
+            profile_slug="generated-profile",
+            os_support=["LINUX", "WSL", "WIN"],
+            cuda_required=cuda_required,
+        )
+    except (IncompatibilityError, UnknownVersionError, UnsupportedOSError):
+        return
+
+    assert result.python_version == python_version
+    assert result.cuda_version == cuda_version
+    assert result.target_os == target_os
+    assert len(result.packages) == len(packages)
 
 def test_resolve_pytorch_cuda118_py311():
     result = R.resolve(
@@ -168,3 +233,36 @@ def test_cuda_125_126_in_supported_versions():
     from app.compatibility.matrix.cuda import SUPPORTED_CUDA_VERSIONS
     assert "12.5" in SUPPORTED_CUDA_VERSIONS
     assert "12.6" in SUPPORTED_CUDA_VERSIONS
+
+
+def test_rocm_version_override_success():
+    result = R.resolve(
+        packages=[PackageConstraint("torch", "2.0.0")],
+        python_version="3.10",
+        cuda_version=None,
+        rocm_version="5.6.0",
+        target_os="LINUX",
+        profile_slug="pytorch-rocm",
+        os_support=["LINUX"],
+        rocm_required=True,
+        overrides={"torch": "2.1.0"},
+    )
+    assert result.packages[0].version == "2.1.0"
+    assert result.packages[0].cuda_variant == "rocm5.6.0"
+
+
+def test_rocm_version_override_failure():
+    with pytest.raises(IncompatibilityError) as exc:
+        R.resolve(
+            packages=[PackageConstraint("torch", "2.1.0")],
+            python_version="3.10",
+            cuda_version=None,
+            rocm_version="5.6.0",
+            target_os="LINUX",
+            profile_slug="pytorch-rocm",
+            os_support=["LINUX"],
+            rocm_required=True,
+            overrides={"torch": "2.4.0"},  # 2.4.0 only supports ROCm 6.0.0
+        )
+    assert exc.value.component == "rocm"
+

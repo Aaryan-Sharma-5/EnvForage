@@ -15,9 +15,7 @@ Strategy:
 from __future__ import annotations
 
 import json
-import os
 import platform
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -30,6 +28,30 @@ _PROBE_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12","3.13"]
 # Inspector script run inside each discovered Python to get its full info
 _INSPECTOR = """
 import sys, json, os
+from pathlib import Path
+
+def sanitize_path(path):
+    if not path:
+        return path
+
+    home_dir = str(Path.home())
+
+    try:
+        normalized_path = os.path.normcase(os.path.normpath(path))
+        normalized_home = os.path.normcase(os.path.normpath(home_dir))
+
+        if (
+            normalized_path == normalized_home
+            or normalized_path.startswith(normalized_home + os.sep)
+        ):
+            relative_part = path[len(home_dir):]
+            return "<USER_HOME>" + relative_part
+
+    except Exception:
+        pass
+
+    return path
+
 prefix = getattr(sys, 'prefix', sys.executable)
 base = getattr(sys, 'base_prefix', prefix)
 is_venv = prefix != base
@@ -41,9 +63,9 @@ except ImportError:
     pip_ver = None
 print(json.dumps({
     "version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-    "path": sys.executable,
+    "path": sanitize_path(sys.executable),
     "is_venv": is_venv,
-    "venv_path": venv_path,
+    "venv_path": sanitize_path(venv_path),
     "pip_version": pip_ver,
 }))
 """
@@ -108,6 +130,7 @@ def _inspect_python(binary: str) -> PythonInfo | None:
     Run the inspector script inside the given Python binary.
     Returns None if the binary is not found or fails.
     """
+    process = None
     try:
         # Handle "py -3.11" style on Windows
         if binary.startswith("py -"):
@@ -115,16 +138,31 @@ def _inspect_python(binary: str) -> PythonInfo | None:
         else:
             args = [binary, "-c", _INSPECTOR]
 
-        result = subprocess.run(
+        process = subprocess.Popen(
             args,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=10,
         )
-        if result.returncode != 0 or not result.stdout.strip():
+        try:
+            stdout, stderr = process.communicate(timeout=10)
+        except subprocess.TimeoutExpired as exc:
+            try:
+                psutil = __import__("psutil")
+                parent = psutil.Process(process.pid)
+                for child in parent.children(recursive=True):
+                    child.kill()
+            except Exception:
+                pass
+            process.kill()
+            process.communicate()
+            setattr(exc, "process", process)
+            raise exc
+
+        if process.returncode != 0 or not stdout.strip():
             return None
 
-        data = json.loads(result.stdout.strip())
+        data = json.loads(stdout.strip())
         return PythonInfo(
             version=data["version"],
             path=data["path"],
