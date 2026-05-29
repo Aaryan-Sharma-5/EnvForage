@@ -9,6 +9,9 @@ from app.models.profile import EnvironmentProfile
 
 pytestmark = pytest.mark.asyncio
 
+# Must match the ADMIN_API_KEY set in conftest.py os.environ.setdefault
+ADMIN_HEADERS = {"X-Admin-API-Key": "test-admin-key-for-ci"}
+
 
 @pytest.fixture
 async def client(db_session_factory):
@@ -63,7 +66,7 @@ async def test_profile_crud_lifecycle(client, db_session):
     }
 
     # ──── 1. CREATE ────
-    create_response = await client.post("/api/v1/profiles", json=profile_data)
+    create_response = await client.post("/api/v1/profiles", json=profile_data, headers=ADMIN_HEADERS)
     assert create_response.status_code == 201
     created_profile = create_response.json()
     assert created_profile["slug"] == profile_slug
@@ -104,7 +107,7 @@ async def test_profile_crud_lifecycle(client, db_session):
     assert not any(p["slug"] == profile_slug for p in listed_no_match)
 
     # ──── 4. DELETE ────
-    delete_response = await client.delete(f"/api/v1/profiles/{profile_slug}")
+    delete_response = await client.delete(f"/api/v1/profiles/{profile_slug}", headers=ADMIN_HEADERS)
     assert delete_response.status_code == 204
 
     # ──── 5. VERIFY DELETED ────
@@ -139,11 +142,11 @@ async def test_create_duplicate_slug_conflict(client):
     }
 
     # First creation
-    res1 = await client.post("/api/v1/profiles", json=profile_data)
+    res1 = await client.post("/api/v1/profiles", json=profile_data, headers=ADMIN_HEADERS)
     assert res1.status_code == 201
 
     # Duplicate creation
-    res2 = await client.post("/api/v1/profiles", json=profile_data)
+    res2 = await client.post("/api/v1/profiles", json=profile_data, headers=ADMIN_HEADERS)
     assert res2.status_code == 409
     assert "already exists" in res2.json()["detail"]["error"]["message"].lower()
 
@@ -157,6 +160,24 @@ async def test_get_nonexistent_profile_returns_404(client):
 
 async def test_delete_nonexistent_profile_returns_404(client):
     """Test that deleting a nonexistent profile slug returns 404 Not Found."""
-    response = await client.delete("/api/v1/profiles/nonexistent-profile-slug")
+    response = await client.delete("/api/v1/profiles/nonexistent-profile-slug", headers=ADMIN_HEADERS)
     assert response.status_code == 404
     assert response.json()["detail"]["error"]["code"] == "PROFILE_NOT_FOUND"
+
+
+async def test_create_profile_without_admin_key_returns_401(client):
+    """Test that POST /api/v1/profiles without an admin key returns 401."""
+    profile_data = {
+        "slug": "unauth-test",
+        "name": "Unauth Test",
+        "os_support": ["LINUX"],
+        "python_versions": ["3.11"],
+    }
+    response = await client.post("/api/v1/profiles", json=profile_data)
+    assert response.status_code == 401
+
+
+async def test_delete_profile_without_admin_key_returns_401(client):
+    """Test that DELETE /api/v1/profiles/{slug} without an admin key returns 401."""
+    response = await client.delete("/api/v1/profiles/any-slug")
+    assert response.status_code == 401

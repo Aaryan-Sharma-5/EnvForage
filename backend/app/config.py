@@ -69,6 +69,13 @@ class Settings(BaseSettings):
     rate_limit_repair_rpm: int = 20   # Repair endpoint: requests per minute
     rate_limit_general_rpm: int = 60  # General API: requests per minute
 
+    # ── Admin API Key ─────────────────────────────────────────
+    # Protects write operations on shared resources (profile create/delete,
+    # future admin-only endpoints).  Set via ADMIN_API_KEY env var.
+    # When unset the application will refuse all admin requests to avoid
+    # silently running unprotected in production.
+    admin_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -14,6 +14,9 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://test:test@localhost:5432/test",
 )
+# Provide a deterministic admin key for tests so require_admin dependency
+# does not return 503 (unconfigured) during the test suite.
+os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-for-ci")
 import pytest
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB

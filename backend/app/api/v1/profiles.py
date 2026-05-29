@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app.api.deps import DB
+from app.api.deps import DB, require_admin
 from app.core.exceptions import ConflictError, EntityNotFoundError, InternalServerError
 from app.middleware.rate_limit import general_rate_limit
 from app.schemas.profile import (
@@ -134,15 +134,18 @@ async def get_profile(
     tags=["Profiles"],
     responses={
         201: {"description": "Profile created successfully"},
+        401: {"description": "Missing or invalid admin API key"},
         409: {"description": "Profile already exists"},
         422: {"description": "Request validation error"},
         500: {"description": "Database error while creating profile"},
+        503: {"description": "Admin API key not configured on this server"},
     },
 )
 async def create_profile(
     profile_in: ProfileCreateSchema,
     db: DB,
     _rate_limit: None = Depends(general_rate_limit),
+    _auth: None = Depends(require_admin),
 ) -> ProfileDetailSchema:
     """
     Create a new environment profile.
@@ -168,7 +171,9 @@ async def create_profile(
     tags=["Profiles"],
     responses={
         204: {"description": "Profile deleted successfully"},
+        401: {"description": "Missing or invalid admin API key"},
         404: {"description": "Profile not found"},
+        503: {"description": "Admin API key not configured on this server"},
     },
 )
 async def delete_profile(
@@ -178,6 +183,7 @@ async def delete_profile(
         description="Unique slug of the environment profile to delete.",
         examples=["pytorch-cu121"],
     ),
+    _auth: None = Depends(require_admin),
 ) -> None:
     """
     Soft delete a profile by slug.
