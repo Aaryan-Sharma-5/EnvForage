@@ -1,4 +1,3 @@
-import os
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
@@ -6,9 +5,11 @@ from jose import jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 
+from app.config import get_settings
+
 router = APIRouter()
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-SK = os.getenv("SECRET_KEY")
+SK = get_settings().secret_key
 if not SK:
     raise RuntimeError("SECRET_KEY environment variable is not set")
 
