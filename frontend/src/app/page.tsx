@@ -163,7 +163,7 @@ export default function HomePage() {
             justifyContent: "center",
             fontSize: "2rem",
             fontWeight: 700,
-            color: "white",
+            color: "var(--brand-primary)",
           }}
         >
           ⚡ AI Powered Setup
