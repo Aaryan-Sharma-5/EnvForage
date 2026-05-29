@@ -7,6 +7,7 @@ All configuration is sourced from environment variables or a local `.env` file.
 shares the same env-loading bootstrap before `Settings` is read.
 """
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -26,18 +27,20 @@ class Settings(BaseSettings):
     # ── Application ───────────────────────────────────────────
     environment: Literal["development", "staging", "production"] = "development"
     debug: bool = False
-    secret_key: str
+    secret_key: str = "dev-secret-key-change-in-production"
     app_name: str = "EnvForage"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
+    custom_template_dir: Path | None = None
 
     # ── Database ──────────────────────────────────────────────
-    database_url: str
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/envforge"
 
     # ── Redis ─────────────────────────────────────────────────
     # If set, the rate limiter will use Redis instead of in-memory storage.
     # Required in production for multi-worker correctness.
     # Format: redis://:password@host:port/db  or  redis://host:port/db
     redis_url: str | None = None
+    resolver_cache_ttl_seconds: int = 86400
 
     # ── CORS ─────────────────────────────────────────────────
     allowed_origins: str = "http://localhost:3000"
@@ -52,7 +55,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o"
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-4o"
-    ollama_base_url: str = "http://localhost:11434"
+    ollama_base_url: str = "http://llm:11434"
     ollama_model: str = "llama3"
     ai_max_tokens: int = 2048
     ai_temperature: float = 0.3
@@ -66,8 +69,16 @@ class Settings(BaseSettings):
     rate_limit_repair_rpm: int = 20   # Repair endpoint: requests per minute
     rate_limit_general_rpm: int = 60  # General API: requests per minute
 
+    # ── Admin API Key ─────────────────────────────────────────
+    # Protects write operations on shared resources (profile create/delete,
+    # future admin-only endpoints).  Set via ADMIN_API_KEY env var.
+    # When unset the application will refuse all admin requests to avoid
+    # silently running unprotected in production.
+    admin_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
     """Return cached settings singleton."""
     return Settings()
+

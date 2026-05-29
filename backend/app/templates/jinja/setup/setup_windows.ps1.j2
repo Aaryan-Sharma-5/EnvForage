@@ -21,6 +21,37 @@ function Write-Info  { Write-Host "[EnvForge] $args" -ForegroundColor Green }
 function Write-Warn  { Write-Host "[WARN] $args" -ForegroundColor Yellow }
 function Write-Err   { Write-Host "[ERROR] $args" -ForegroundColor Red; exit 1 }
 
+{% if use_micromamba %}
+# ── Bootstrap micromamba ─────────────────────────────────────────────────────
+Write-Info "Bootstrapping micromamba..."
+if (-not (Get-Command micromamba -ErrorAction SilentlyContinue)) {
+    $MicromambaDir = "$env:USERPROFILE\.local\bin"
+    New-Item -ItemType Directory -Force -Path $MicromambaDir | Out-Null
+    Invoke-RestMethod -Uri https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile "$env:TEMP\micromamba.tar.bz2"
+    tar -xjf "$env:TEMP\micromamba.tar.bz2" -C "$MicromambaDir" Library/bin/micromamba.exe
+    $ExtractedMicromamba = Join-Path $MicromambaDir "Library\bin\micromamba.exe"
+    $MicromambaExe = Join-Path $MicromambaDir "micromamba.exe"
+    if (Test-Path $ExtractedMicromamba) {
+        Move-Item -Force -Path $ExtractedMicromamba -Destination $MicromambaExe
+    }
+    $env:Path = "$MicromambaDir;$env:Path"
+    Write-Info "micromamba installed."
+} else {
+    Write-Info "micromamba already installed: $(micromamba --version)"
+}
+
+# ── Micromamba environment ───────────────────────────────────────────────────
+$EnvPrefix = "$PWD\.venv"
+if (-not (Test-Path $EnvPrefix)) {
+    Write-Info "Creating micromamba environment in $EnvPrefix..."
+    micromamba create -p $EnvPrefix -c conda-forge python={{ python_version }} -y
+}
+Write-Info "Micromamba environment ready: $EnvPrefix"
+
+function Invoke-EnvCmd {
+    & micromamba run -p $EnvPrefix @args
+}
+{% else %}
 # ── Pre-flight checks ─────────────────────────────────────────────────────────
 Write-Info "Starting pre-flight checks..."
 
@@ -53,8 +84,24 @@ if (-not (Test-Path $VenvDir)) {
 & "$VenvDir\Scripts\Activate.ps1"
 Write-Info "Virtual environment activated: $VenvDir"
 
+function Invoke-EnvCmd {
+    & @args
+}
+{% endif %}
+
 # Upgrade pip
-pip install --quiet --upgrade pip
+Invoke-EnvCmd pip install --quiet --upgrade pip
+
+{% if use_uv %}
+# ── Bootstrap uv ─────────────────────────────────────────────────────────────
+Write-Info "Bootstrapping uv package manager..."
+if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+    Write-Info "uv installed successfully."
+} else {
+    Write-Info "uv already installed: $(uv --version)"
+}
+{% endif %}
 
 # ── Package installation ──────────────────────────────────────────────────────
 Write-Info "Installing packages..."
@@ -64,7 +111,11 @@ Write-Warn "Note: GPU support on Windows requires WSL2 for some frameworks."
 Write-Warn "See: https://docs.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl"
 {% endif %}
 
-pip install `
+{% if use_uv %}
+Invoke-EnvCmd uv pip install `
+{% else %}
+Invoke-EnvCmd pip install `
+{% endif %}
 {% for pkg in packages %}
     "{{ pkg.pip_spec }}" `
 {% endfor %}
@@ -74,10 +125,21 @@ pip install `
 Write-Info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 Write-Info "✓ EnvForge setup complete!"
 Write-Info "  Profile: {{ profile.name }}"
-Write-Info "  Python : $(python --version)"
-Write-Info "  Venv   : $PWD\$VenvDir"
+Write-Info "  Python : $(Invoke-EnvCmd python --version)"
+{% if use_micromamba %}
+Write-Info "  Env    : micromamba ($EnvPrefix)"
+{% elif use_uv %}
+Write-Info "  Installer: uv (fast)"
+{% else %}
+Write-Info "  Installer: pip"
+{% endif %}
+Write-Info "  Venv   : $PWD\.venv"
 Write-Info ""
+{% if use_micromamba %}
+Write-Info "  Activate with:  micromamba activate -p .venv"
+{% else %}
 Write-Info "  Activate with:  .\.venv\Scripts\Activate.ps1"
+{% endif %}
 Write-Info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 {% if warnings %}
 {% for warning in warnings %}

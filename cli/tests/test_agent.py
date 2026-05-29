@@ -6,10 +6,9 @@ All detector tests mock subprocess / platform — no nvidia-smi required.
 """
 from __future__ import annotations
 
+import sys
 import json
 from pathlib import Path
-from unittest import runner
-from pydoc import cli
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -38,7 +37,7 @@ class TestDiagnosticReportSchema:
         """Every fixture must deserialize into a valid DiagnosticReport."""
         raw = (FIXTURES_DIR / fixture_file).read_text(encoding="utf-8")
         report = DiagnosticReport.model_validate_json(raw)
-        assert report.agent_version == "0.1.0"
+        assert report.agent_version == "1.0.0"
         assert report.os.name
         assert report.cpu.cores >= 1
         assert report.cpu.threads >= report.cpu.cores
@@ -88,7 +87,7 @@ class TestDiagnosticReportSchema:
         report = DiagnosticReport.model_validate(data)
         json_str = report.to_json()
         parsed = json.loads(json_str)
-        assert parsed["agent_version"] == "0.1.0"
+        assert parsed["agent_version"] == "1.0.0"
         assert "os" in parsed
         assert "gpus" in parsed
 
@@ -117,6 +116,55 @@ class TestOSDetector:
             with patch("builtins.open", side_effect=FileNotFoundError):
                 result = _detect_wsl()
         assert result is None
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="requires winreg/Windows")
+    @patch("winreg.OpenKey")
+    @patch("winreg.QueryValueEx")
+    @patch("platform.release")
+    def test_detect_windows_10(self, mock_release, mock_query, mock_openkey) -> None:
+        from envforge_agent.detectors.os_detector import _detect_windows
+        mock_release.return_value = "10"
+        mock_query.side_effect = [
+            ("Windows 10 Home", 1),
+            ("19045", 1),
+            ("22H2", 1),
+        ]
+        result = _detect_windows("AMD64")
+        assert result.name == "Windows 10 Home"
+        assert result.version == "22H2 (Build 19045)"
+        assert result.architecture == "AMD64"
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="requires winreg/Windows")
+    @patch("winreg.OpenKey")
+    @patch("winreg.QueryValueEx")
+    @patch("platform.release")
+    def test_detect_windows_11_via_build(self, mock_release, mock_query, mock_openkey) -> None:
+        from envforge_agent.detectors.os_detector import _detect_windows
+        mock_release.return_value = "10"
+        mock_query.side_effect = [
+            ("Windows 10 Home Single Language", 1),
+            ("22000", 1),
+            ("21H2", 1),
+        ]
+        result = _detect_windows("AMD64")
+        assert result.name == "Windows 11 Home Single Language"
+        assert result.version == "21H2 (Build 22000)"
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="requires winreg/Windows")
+    @patch("winreg.OpenKey")
+    @patch("winreg.QueryValueEx")
+    @patch("platform.release")
+    def test_detect_windows_11_via_release(self, mock_release, mock_query, mock_openkey) -> None:
+        from envforge_agent.detectors.os_detector import _detect_windows
+        mock_release.return_value = "11"
+        mock_query.side_effect = [
+            ("Windows 10 Pro", 1),
+            ("invalid_build", 1),
+            ("23H2", 1),
+        ]
+        result = _detect_windows("AMD64")
+        assert result.name == "Windows 11 Pro"
+        assert result.version == "23H2 (Build invalid_build)"
 
 
 # ── GPU Detector tests ────────────────────────────────────────────────────────
@@ -206,6 +254,48 @@ class TestCUDADetector:
             result = _cuda_path_env_version()
         assert result == "12.1"
 
+    @patch("subprocess.run")
+    def test_nvidia_smi_cuda_version_query_success(self, mock_run: MagicMock) -> None:
+        from envforge_agent.detectors.cuda_detector import _nvidia_smi_cuda_version
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = "12.3\n"
+        mock_run.return_value = mock_proc
+        
+        result = _nvidia_smi_cuda_version()
+        assert result == "12.3"
+
+    @patch("subprocess.run")
+    def test_nvidia_smi_cuda_version_fallback_success(self, mock_run: MagicMock) -> None:
+        from envforge_agent.detectors.cuda_detector import _nvidia_smi_cuda_version
+        
+        # First call (query-gpu) fails
+        mock_query_fail = MagicMock()
+        mock_query_fail.returncode = 1
+        
+        # Second call (standard nvidia-smi) succeeds
+        mock_fallback_ok = MagicMock()
+        mock_fallback_ok.returncode = 0
+        mock_fallback_ok.stdout = (
+            "Fri May 22 15:53:56 2026       \n"
+            "+-----------------------------------------------------------------------------------------+\n"
+            "| NVIDIA-SMI 595.79                 Driver Version: 595.79         CUDA Version: 13.2     |\n"
+            "+-----------------------------------------+------------------------+----------------------+\n"
+        )
+        
+        mock_run.side_effect = [mock_query_fail, mock_fallback_ok]
+        
+        result = _nvidia_smi_cuda_version()
+        assert result == "13.2"
+
+    @patch("subprocess.run")
+    def test_nvidia_smi_cuda_version_not_found(self, mock_run: MagicMock) -> None:
+        from envforge_agent.detectors.cuda_detector import _nvidia_smi_cuda_version
+        mock_run.side_effect = FileNotFoundError()
+        
+        result = _nvidia_smi_cuda_version()
+        assert result is None
+
 
 # ── Python Detector tests ─────────────────────────────────────────────────────
 
@@ -231,7 +321,44 @@ class TestPythonDetector:
         result = _inspect_python(sys.executable)
         assert result is not None
         assert result.version
-        assert result.path == sys.executable or Path(result.path).resolve() == Path(sys.executable).resolve()
+        path_str = result.path
+        if path_str.startswith("<USER_HOME>"):
+            path_str = path_str.replace("<USER_HOME>", str(Path.home()), 1)
+        assert path_str == sys.executable or Path(path_str).resolve() == Path(sys.executable).resolve()
+
+    @patch("subprocess.Popen")
+    @patch("psutil.Process")
+    def test_inspect_python_timeout(self, mock_psutil_process: MagicMock, mock_popen: MagicMock) -> None:
+        import subprocess
+        from envforge_agent.detectors.python_detector import _inspect_python
+
+        # Mock Popen instance
+        mock_proc = MagicMock()
+        # Mock communicate to raise TimeoutExpired on the first call, and succeed on the second
+        mock_proc.communicate.side_effect = [
+            subprocess.TimeoutExpired(cmd="mock_python", timeout=10),
+            ("", "")
+        ]
+        mock_proc.pid = 12345
+        mock_popen.return_value = mock_proc
+
+        # Mock psutil Process instance
+        mock_psutil_proc_inst = MagicMock()
+        mock_child = MagicMock()
+        mock_psutil_proc_inst.children.return_value = [mock_child]
+        mock_psutil_process.return_value = mock_psutil_proc_inst
+
+        # Run inspect
+        result = _inspect_python("mock_python")
+
+        # Verify result is None
+        assert result is None
+
+        # Verify child and parent were killed
+        mock_child.kill.assert_called_once()
+        mock_proc.kill.assert_called_once()
+        # Verify communicate was called again to reap the process
+        assert mock_proc.communicate.call_count == 2
 
 
 # ── System Detector tests ─────────────────────────────────────────────────────
@@ -260,7 +387,7 @@ class TestReportBuilder:
         from envforge_agent.report import ReportBuilder
         report = ReportBuilder().build()
         assert isinstance(report, DiagnosticReport)
-        assert report.agent_version == "0.1.0"
+        assert report.agent_version == "1.0.1"
         assert report.os.name
         assert report.cpu.cores >= 1
 

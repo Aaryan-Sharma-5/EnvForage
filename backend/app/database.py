@@ -5,6 +5,7 @@ Uses SQLAlchemy 2.0 async API throughout.
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -19,7 +20,7 @@ class Base(DeclarativeBase):
     pass
 
 
-def _make_engine():
+def _make_engine() -> AsyncEngine:
     settings = get_settings()
     return create_async_engine(
         settings.database_url,
@@ -27,6 +28,7 @@ def _make_engine():
         pool_pre_ping=True,
         pool_size=10,
         max_overflow=20,
+        pool_recycle=1800,
         connect_args={
             "prepared_statement_cache_size": 0,
             "statement_cache_size": 0,

@@ -1,14 +1,16 @@
 """
 Profile service — business logic for profile CRUD operations.
 """
+
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.profile import EnvironmentProfile
-from app.schemas.profile import ProfileFilters
+from app.models.profile import EnvironmentProfile, ProfilePackage
+from app.schemas.profile import ProfileCreateSchema, ProfileFilters
 
 
 async def list_profiles(
@@ -28,28 +30,36 @@ async def list_profiles(
     )
 
     if filters.os:
-        query = query.where(
-            EnvironmentProfile.os_support.contains([filters.os])
-        )
+        query = query.where(EnvironmentProfile.os_support.contains([filters.os]))
 
     if filters.cuda_required is not None:
-        query = query.where(
-            EnvironmentProfile.cuda_required == filters.cuda_required
-        )
+        query = query.where(EnvironmentProfile.cuda_required == filters.cuda_required)
 
     if filters.tags:
         for tag in filters.tags:
-            query = query.where(
-                EnvironmentProfile.tags.contains([tag])
-            )
+            query = query.where(EnvironmentProfile.tags.contains([tag]))
 
-    # Count total (before pagination)
-    count_result = await db.execute(
-        select(EnvironmentProfile.id)
+    # Count total (before pagination) — apply same filters as main query
+    from sqlalchemy import func
+
+    count_query = (
+        select(func.count(EnvironmentProfile.id))
         .where(EnvironmentProfile.deleted_at.is_(None))
         .where(EnvironmentProfile.status == "ACTIVE")
     )
-    total = len(count_result.all())
+    if filters.os:
+        count_query = count_query.where(
+            EnvironmentProfile.os_support.contains([filters.os])
+        )
+    if filters.cuda_required is not None:
+        count_query = count_query.where(
+            EnvironmentProfile.cuda_required == filters.cuda_required
+        )
+    if filters.tags:
+        for tag in filters.tags:
+            count_query = count_query.where(EnvironmentProfile.tags.contains([tag]))
+    count_result = await db.execute(count_query)
+    total = count_result.scalar_one()
 
     # Apply pagination
     offset = (filters.page - 1) * filters.limit
@@ -96,20 +106,20 @@ async def create_profile(
     # Create main profile entity
     profile_data = profile_in.model_dump(exclude={"packages"})
     db_profile = EnvironmentProfile(**profile_data)
-    
+
     # Create associated packages
     for pkg_in in profile_in.packages:
         pkg_data = pkg_in.model_dump()
         db_pkg = ProfilePackage(**pkg_data)
         db_profile.packages.append(db_pkg)
-        
+
     db.add(db_profile)
     try:
         await db.commit()
     except Exception:
         await db.rollback()
         raise
-    
+
     # Fetch the profile again with packages selectinloaded to avoid lazy-loading errors
     profile = await get_profile_by_id(db, db_profile.id)
     if not profile:
@@ -125,10 +135,10 @@ async def delete_profile(
     profile = await get_profile_by_slug(db, slug)
     if not profile:
         return False
-        
-    profile.deleted_at = datetime.now(timezone.utc)
+
+    profile.deleted_at = datetime.now(UTC)
     profile.status = "DELETED"
-    
+
     try:
         await db.commit()
     except Exception:

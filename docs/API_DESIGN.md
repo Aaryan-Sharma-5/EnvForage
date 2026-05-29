@@ -1,8 +1,8 @@
 # EnvForge — API Design
 
-> **Version**: 0.1.0
-> **Status**: Planning
-> **Last Updated**: 2026-05-06
+> **Version**: 1.0.0
+> **Status**: Production
+> **Last Updated**: 2026-05-21
 
 ---
 
@@ -91,7 +91,7 @@ Generate a set of setup scripts for a profile.
   "overrides": {
     "torch": "2.2.0"
   },
-  "output_formats": ["setup.sh", "requirements.txt", "Dockerfile"]
+  "output_formats": ["setup.sh", "environment.yml", "Dockerfile"]
 }
 ```
 

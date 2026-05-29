@@ -12,8 +12,12 @@
 
 name: {{ profile.name }}
 channels:
+{% if cuda_version %}  - pytorch
+  - nvidia
+{% elif rocm_version %}  - pytorch
+{% endif %}  - conda-forge
   - defaults
-  - conda-forge
+  
 dependencies:
   - python={{ python_version }}
 {% set pip_ns = namespace(has_pip_packages=false) %}

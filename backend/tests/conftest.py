@@ -14,9 +14,19 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://test:test@localhost:5432/test",
 )
+# Provide a deterministic admin key for tests so require_admin dependency
+# does not return 503 (unconfigured) during the test suite.
+os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-for-ci")
 import pytest
+from sqlalchemy import event
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.pool import StaticPool
+from sqlalchemy.sql.expression import BinaryExpression
+
 from app.database import Base
+
 
 # 1. Compile postgresql.ARRAY and JSONB to TEXT/JSON on SQLite
 @compiles(ARRAY, "sqlite")
@@ -65,8 +75,8 @@ def new_result_processor(self, dialect, coltype):
         return process
     return _orig_result_processor(self, dialect, coltype)
 
-ARRAY.bind_processor = new_bind_processor
-ARRAY.result_processor = new_result_processor
+ARRAY.bind_processor = new_bind_processor # type: ignore[method-assign]
+ARRAY.result_processor = new_result_processor # type: ignore[method-assign]
 
 # Use in-memory SQLite for unit tests (no Postgres needed)
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
@@ -79,10 +89,15 @@ def event_loop_policy():
     return asyncio.DefaultEventLoopPolicy()
 
 
-@pytest.fixture
-async def db_session():
-    """Provide a test database session backed by in-memory SQLite."""
-    engine = create_async_engine(TEST_DB_URL, echo=False)
+@pytest.fixture(scope="session")
+async def test_engine():
+    """Provide a session-scoped async SQLite engine using StaticPool."""
+    engine = create_async_engine(
+        TEST_DB_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=False,
+    )
 
     @event.listens_for(engine.sync_engine, "connect")
     def register_sqlite_functions(dbapi_connection, connection_record):
@@ -95,56 +110,37 @@ async def db_session():
                     item = json.loads(item_str)
                 except Exception:
                     item = item_str
-                
+
                 if isinstance(item, list):
                     return all(x in arr for x in item)
                 return item in arr
             except Exception:
                 return False
-                
+
         dbapi_connection.create_function("array_contains", 2, array_contains)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    session_factory = async_sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
-    )
-    async with session_factory() as session:
-        yield session
+    yield engine
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
 
 
 @pytest.fixture
-async def db_session_factory(db_session):
-    """Provide the session factory for per-request session creation."""
-    engine = create_async_engine(TEST_DB_URL, echo=False)
-
-    @event.listens_for(engine.sync_engine, "connect")
-    def register_sqlite_functions(dbapi_connection, connection_record):
-        def array_contains(arr_str, item_str):
-            if not arr_str or not item_str:
-                return False
-            try:
-                arr = json.loads(arr_str)
-                try:
-                    item = json.loads(item_str)
-                except Exception:
-                    item = item_str
-                
-                if isinstance(item, list):
-                    return all(x in arr for x in item)
-                return item in arr
-            except Exception:
-                return False
-                
-        dbapi_connection.create_function("array_contains", 2, array_contains)
-
+async def db_session(test_engine):
+    """Provide a test database session backed by the shared in-memory SQLite engine."""
     session_factory = async_sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
+        bind=test_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    async with session_factory() as session:
+        yield session
+
+
+@pytest.fixture
+async def db_session_factory(test_engine):
+    """Provide the session factory for per-request session creation using the shared SQLite engine."""
+    session_factory = async_sessionmaker(
+        bind=test_engine, class_=AsyncSession, expire_on_commit=False
     )
     yield session_factory
-    await engine.dispose()

@@ -1,0 +1,25 @@
+# ==============================================================================
+# EnvForge Generated pyproject.toml (Poetry)
+# Profile  : {{ profile.name }}
+# Python   : {{ python_version }}
+{% if cuda_version %}# CUDA     : {{ cuda_version }}
+{% endif %}# Generated: {{ generated_at }}
+# EnvForge : v{{ envforge_version }}
+# ==============================================================================
+
+[tool.poetry]
+name = "envforge-generated"
+version = "0.1.0"
+description = "Generated dependencies for {{ profile.name }}"
+authors = ["EnvForge <envforge@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "{{ python_version }}.*"
+{% for pkg in packages %}
+{{ pkg.name }} = "{{ pkg.version }}{% if pkg.cuda_variant %}+{{ pkg.cuda_variant }}{% endif %}"
+{% endfor %}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
