@@ -18,6 +18,7 @@ export default function Navbar() {
     { name: "Profiles", path: "/profiles" },
     { name: "Diagnose", path: "/diagnose" },
     { name: "AI Troubleshoot", path: "/troubleshoot" },
+    { name: "Dependencies", path: "/dependencies" },
   ];
 
   return (
