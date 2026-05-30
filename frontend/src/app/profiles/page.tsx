@@ -470,29 +470,30 @@ export default function ProfilesPage() {
 								</div>
 
 								<div style={{ display: "flex", gap: "1rem", width: "100%" }}>
-									<Link
-										href={`/profiles/${p.slug}`}
-										className="btn btn-secondary"
-										style={{ flex: 1, fontSize: "0.9rem", padding: "0.6rem 0" }}
-									>
-										Details
-									</Link>
-									<Link
-										href={`/generate?profile=${p.slug}`}
-										className="btn btn-primary"
-										style={{
-											flex: 1.5,
-											fontSize: "0.9rem",
-											padding: "0.6rem 0",
-											display: "flex",
-											gap: "0.4rem",
-											justifyContent: "center",
-											alignItems: "center",
-										}}
-									>
-										<Terminal size={14} />
-										Generate
-									</Link>
+									<motion.div
+  whileHover={{ scale: 1.05, y: -2 }}
+  whileTap={{ scale: 0.96 }}
+  style={{ flex: 1.5 }}
+>
+  <Link
+    href={`/generate?profile=${p.slug}`}
+    className="btn btn-primary"
+    style={{
+      width: "100%",
+      fontSize: "0.9rem",
+      padding: "0.6rem 0",
+      display: "flex",
+      gap: "0.4rem",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <motion.div whileHover={{ x: 3, rotate: 10 }}>
+      <Terminal size={14} />
+    </motion.div>
+    Generate
+  </Link>
+</motion.div>
 								</div>
 							</motion.div>
 						))}
