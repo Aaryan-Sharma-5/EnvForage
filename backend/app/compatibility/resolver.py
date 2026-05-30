@@ -409,19 +409,21 @@ class CompatibilityResolver:
         cuda_version: str | None,
         rocm_version: str | None,
     ) -> str | None:
-        """
-        Determine the pip install variant suffix for a package.
+        """Resolves specific GPU-accelerated variants (CUDA/ROCm) for targeted packages.
+
         e.g., torch 2.1.0 with CUDA 11.8 → variant = "cu118"
               torch 2.1.0 with ROCm 5.6 → variant = "rocm5.6"
         """
+        gpu_packages = {"torch", "torchvision", "torchaudio", "onnxruntime-gpu", "cupy"}
+
+        if package_name not in gpu_packages:
+            return None
+
         if cuda_version is not None:
-            if package_name not in ("torch", "torchvision", "torchaudio"):
-                return None
             return "cu" + cuda_version.replace(".", "")
 
         if rocm_version is not None:
-            if package_name not in ("torch", "torchvision", "torchaudio"):
-                return None
             return "rocm" + rocm_version
 
         return None
+    
