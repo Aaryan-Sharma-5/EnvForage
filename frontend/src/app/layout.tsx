@@ -5,7 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "./providers";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
-import CurrentYear from "./components/CurrentYear";
+import Footer from "./components/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -83,42 +83,7 @@ export default function RootLayout({
           </main>
 
           {/* Footer */}
-          <footer
-            className="glass-footer"
-            style={{
-              padding: "2.5rem 0",
-              marginTop: "5rem",
-              color: "var(--text-muted)",
-            }}
-          >
-            <div
-              className="container"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontSize: "0.85rem",
-              }}
-            >
-              <p>© <CurrentYear /> EnvForge. Open Source Tooling.</p>
-
-              <div style={{ display: "flex", gap: "1.5rem" }}>
-                <Link
-                  href="/docs"
-                  style={{ transition: "color var(--transition-fast)" }}
-                >
-                  Documentation
-                </Link>
-
-                <Link
-                  href="/privacy"
-                  style={{ transition: "color var(--transition-fast)" }}
-                >
-                  Privacy
-                </Link>
-              </div>
-            </div>
-          </footer>
+          <Footer />
         </ThemeProvider>
       </body>
     </html>
