@@ -53,23 +53,24 @@
    LIGHT MODE
    ───────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  /* Color Palette - Premium Light Theme (Cool Tint) */
-  --bg-primary: #f8fafc; /* Very subtle slate tint for a cleaner look */
+  /* Color Palette - Premium Cream & Navy */
+  --bg-primary: #faf9f6; /* Warm cream */
   --bg-core: var(--bg-primary);
-  --bg-secondary: #ffffff; /* Pure white for cards to pop against the off-white background */
-  --bg-tertiary: #f1f5f9; /* Slightly darker slate for terminal/inset areas */
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #0f172a; /* Dark navy for terminal and feature sections */
   
-  --text-primary: #0f172a; /* Slate 900 for high contrast, premium text */
+  --text-primary: #0f172a; /* Slate 900 for high contrast */
   --text-secondary: #475569; /* Slate 600 for secondary text */
   --text-muted: #94a3b8; /* Slate 400 */
+  --text-inverse: #f8fafc; /* For text inside dark navy blocks */
   
-  --brand-primary: #4f46e5; /* Deep Indigo */
-  --brand-primary-hover: #4338ca;
-  --brand-secondary: #ec4899; /* Vibrant Pink */
-  --brand-accent: #10b981; /* Emerald */
+  --brand-primary: #0f172a; /* Deep navy for primary buttons */
+  --brand-primary-hover: #1e293b;
+  --brand-secondary: #facc15; /* Vibrant yellow */
+  --brand-accent: #facc15; /* Vibrant yellow */
   
-  --border-subtle: rgba(15, 23, 42, 0.06); /* Very soft border */
-  --border-strong: rgba(15, 23, 42, 0.12); /* Slightly stronger border */
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.15);
   
   /* Typography */
   --font-sans: var(--font-inter), system-ui, sans-serif;
