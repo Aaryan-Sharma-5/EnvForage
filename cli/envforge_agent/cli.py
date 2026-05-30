@@ -14,6 +14,7 @@ import json
 import sys
 import platform
 from pathlib import Path
+import asyncio
 
 import click
 import httpx
@@ -124,6 +125,9 @@ def cli(ctx: click.Context, no_color: bool) -> None:
     help="Timeout in seconds for each detector subprocess call. Default: 30s.",
 )
 def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int, output_format: str = "json") -> None:
+    asyncio.run(_diagnose(output, send, api_url, quiet, sarif, timeout, output_format))
+
+async def _diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int, output_format: str = "json") -> None:
     """
     Collect a full diagnostic report of this machine's ML environment.
 
@@ -652,7 +656,7 @@ def rollback() -> None:
 
     parts = chosen_name.rsplit("_backup_", 1)
     original_name = parts[0]
-    if (!original_name):
+    if not original_name:
         err_console.print(f"[ERROR] Could not determine original virtual environment name: {chosen_name}")
         sys.exit(1)
 
