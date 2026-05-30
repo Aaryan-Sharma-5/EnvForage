@@ -84,8 +84,12 @@ def detect_python() -> tuple[list[PythonInfo], PythonInfo | None]:
     seen_paths: set[str] = set()
     installations: list[PythonInfo] = []
 
-    for binary in candidates:
-        info = _inspect_python(binary)
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Submit all candidates to inspect in parallel
+        results = list(executor.map(_inspect_python, candidates))
+
+    for info in results:
         if info is None:
             continue
         real_path = str(Path(info.path).resolve())
