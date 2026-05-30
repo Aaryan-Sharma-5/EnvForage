@@ -71,6 +71,7 @@ def test_conda_template_with_cuda():
     assert "3.11" in result.content
     assert "torch" in result.content
 
+
 def test_conda_template_contains_channels():
     """Output must include the channels section with conda-forge."""
     context = make_context(profile_name="myenv", python_version="3.10")
@@ -131,6 +132,7 @@ def test_conda_template_name_field_matches_profile():
     result = renderer.render("environment.yml", context)
     assert "name: pytorch-cuda" in result.content
 
+
 def _extract_channels(rendered: str) -> list[str]:
     """Extract ordered channel list from rendered environment.yml content."""
     lines = rendered.splitlines()
@@ -155,7 +157,12 @@ def test_conda_template_cuda_adds_pytorch_nvidia_channels():
     )
     renderer = TemplateRenderer()
     result = renderer.render("environment.yml", context)
-    assert _extract_channels(result.content) == ["pytorch", "nvidia", "conda-forge", "defaults"]
+    assert _extract_channels(result.content) == [
+        "pytorch",
+        "nvidia",
+        "conda-forge",
+        "defaults",
+    ]
 
 
 def test_conda_template_rocm_adds_pytorch_channel():
@@ -186,4 +193,3 @@ def test_conda_template_cpu_only_no_gpu_channels():
     renderer = TemplateRenderer()
     result = renderer.render("environment.yml", context)
     assert _extract_channels(result.content) == ["conda-forge", "defaults"]
-

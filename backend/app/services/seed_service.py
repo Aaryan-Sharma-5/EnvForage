@@ -5,6 +5,7 @@ Run once on startup (idempotent via upsert logic).
 Usage:
     python -m app.services.seed_service
 """
+
 import asyncio
 from pathlib import Path
 
@@ -95,34 +96,42 @@ async def seed_profiles(db: AsyncSession) -> None:
             skipped += 1
             continue
 
-        profile = EnvironmentProfile(
-            slug=profile_data.slug,
-            name=profile_data.name,
-            description=profile_data.description,
-            tags=profile_data.tags,
-            os_support=profile_data.os_support,
-            cuda_required=profile_data.cuda_required,
-            python_versions=profile_data.python_versions,
-            cuda_versions=profile_data.cuda_versions,
-            status=profile_data.status,
-            last_validated=profile_data.last_validated,
-        )
-        db.add(profile)
-        await db.flush()
-
-        for pkg in profile_data.packages:
-            db.add(
-                ProfilePackage(
-                    profile_id=profile.id,
-                    package_name=pkg.name,
-                    version_spec=pkg.version_spec,
-                    cuda_variant=pkg.cuda_variant,
-                    is_optional=pkg.is_optional,
-                    install_order=pkg.install_order,
+        # FIX: Wrap profile + package inserts in a nested transaction (savepoint).
+        # If any package insert fails, the entire profile is rolled back atomically,
+        # preventing partial/corrupted rows from being committed to the database.
+        try:
+            async with db.begin_nested():
+                profile = EnvironmentProfile(
+                    slug=profile_data.slug,
+                    name=profile_data.name,
+                    description=profile_data.description,
+                    tags=profile_data.tags,
+                    os_support=profile_data.os_support,
+                    cuda_required=profile_data.cuda_required,
+                    python_versions=profile_data.python_versions,
+                    cuda_versions=profile_data.cuda_versions,
+                    status=profile_data.status,
+                    last_validated=profile_data.last_validated,
                 )
-            )
+                db.add(profile)
+                await db.flush()
 
-        seeded += 1
+                for pkg in profile_data.packages:
+                    db.add(
+                        ProfilePackage(
+                            profile_id=profile.id,
+                            package_name=pkg.name,
+                            version_spec=pkg.version_spec,
+                            cuda_variant=pkg.cuda_variant,
+                            is_optional=pkg.is_optional,
+                            install_order=pkg.install_order,
+                        )
+                    )
+
+            seeded += 1
+        except Exception as exc:
+            print(f"[seed] Failed to seed profile '{profile_data.slug}': {exc}")
+            invalid += 1
 
     await db.commit()
     print(

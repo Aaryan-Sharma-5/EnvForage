@@ -2,6 +2,7 @@
 Redis client management.
 Returns None if redis_url is not configured (optional dependency).
 """
+
 import redis.asyncio as aioredis
 
 from app.config import get_settings

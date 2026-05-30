@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaProvider(LLMProvider):
-    #Local LLM provider using Ollama
+    # Local LLM provider using Ollama
 
     def __init__(
         self,
@@ -44,7 +44,7 @@ class OllamaProvider(LLMProvider):
         user_message: str,
         response_model: type[T],
     ) -> T:
-        #Send a completion request and return validated response.
+        # Send a completion request and return validated response.
         full_prompt = f"{system_prompt}\n\n{user_message}"
 
         payload = {
@@ -77,13 +77,13 @@ class OllamaProvider(LLMProvider):
                         "ollama",
                         f"LLM response was not valid JSON for {response_model.__name__}. "
                         f"Error: {str(e)}",
-                    )from e
+                    ) from e
                 except ValueError as e:
                     raise LLMProviderError(
                         "ollama",
                         f"Response JSON did not match {response_model.__name__} schema. "
                         f"Error: {str(e)}",
-                    )from e
+                    ) from e
 
         except httpx.ConnectError:
             raise LLMProviderError(
@@ -95,9 +95,9 @@ class OllamaProvider(LLMProvider):
             raise LLMProviderError(
                 "ollama",
                 f"Ollama API returned status {e.response.status_code}. ",
-            )from e
+            ) from e
         except LLMProviderError:
-         raise
+            raise
         except Exception as e:
             raise LLMProviderError(
                 "ollama",
@@ -121,7 +121,9 @@ class OllamaProvider(LLMProvider):
 
         try:
             async with httpx.AsyncClient(timeout=120.0) as client:
-                async with client.stream("POST", self._generate_url, json=payload) as response:
+                async with client.stream(
+                    "POST", self._generate_url, json=payload
+                ) as response:
                     response.raise_for_status()
 
                     async for line in response.aiter_lines():
@@ -134,7 +136,11 @@ class OllamaProvider(LLMProvider):
                             if chunk_text:
                                 yield chunk_text
                         except json.JSONDecodeError:
-                            logger.warning("Skipped malformed Ollama stream line from model=%s (length=%d)", self.model, len(line),)
+                            logger.warning(
+                                "Skipped malformed Ollama stream line from model=%s (length=%d)",
+                                self.model,
+                                len(line),
+                            )
                             continue
 
         except httpx.ConnectError:

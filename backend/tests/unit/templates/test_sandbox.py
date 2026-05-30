@@ -1,4 +1,5 @@
 """Unit tests to verify template engine sandboxing restrictions and functionality."""
+
 import pytest
 from jinja2.sandbox import SandboxedEnvironment, SecurityError
 
@@ -49,7 +50,9 @@ def test_sandbox_blocks_unsafe_attributes():
         template = env.from_string(t_str)
         with pytest.raises(SecurityError) as exc_info:
             template.render()
-        assert "access to attribute" in str(exc_info.value) or "is blocked" in str(exc_info.value)
+        assert "access to attribute" in str(exc_info.value) or "is blocked" in str(
+            exc_info.value
+        )
 
 
 def test_sandbox_allows_safe_filters_and_rendering():

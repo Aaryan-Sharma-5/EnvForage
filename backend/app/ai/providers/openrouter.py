@@ -40,7 +40,9 @@ class OpenRouterProvider(LLMProvider):
         temperature: float = 0.3,
     ) -> None:
         if not api_key or api_key == "sk-or-...":
-            raise LLMProviderError("openrouter", "OPENROUTER_API_KEY is not configured.")
+            raise LLMProviderError(
+                "openrouter", "OPENROUTER_API_KEY is not configured."
+            )
         self.api_key = api_key
         self.model = model
         self.max_tokens = max_tokens
@@ -117,10 +119,13 @@ class OpenRouterProvider(LLMProvider):
                 if response.status_code == 429:
                     # Rate limited — retry with backoff
                     import asyncio
-                    wait = RETRY_BACKOFF_BASE ** attempt
+
+                    wait = RETRY_BACKOFF_BASE**attempt
                     logger.warning(
                         "OpenRouter rate limited (429). Retry %d/%d in %ds",
-                        attempt, MAX_RETRIES, wait,
+                        attempt,
+                        MAX_RETRIES,
+                        wait,
                     )
                     await asyncio.sleep(wait)
                     continue
@@ -128,10 +133,14 @@ class OpenRouterProvider(LLMProvider):
                 if response.status_code >= 500:
                     # Server error — retry
                     import asyncio
-                    wait = RETRY_BACKOFF_BASE ** attempt
+
+                    wait = RETRY_BACKOFF_BASE**attempt
                     logger.warning(
                         "OpenRouter server error (%d). Retry %d/%d in %ds",
-                        response.status_code, attempt, MAX_RETRIES, wait,
+                        response.status_code,
+                        attempt,
+                        MAX_RETRIES,
+                        wait,
                     )
                     await asyncio.sleep(wait)
                     continue
@@ -192,14 +201,18 @@ class OpenRouterProvider(LLMProvider):
                 )
                 logger.warning("OpenRouter timeout. Retry %d/%d", attempt, MAX_RETRIES)
                 import asyncio
-                await asyncio.sleep(RETRY_BACKOFF_BASE ** attempt)
+
+                await asyncio.sleep(RETRY_BACKOFF_BASE**attempt)
             except httpx.HTTPError as exc:
                 last_error = LLMProviderError(
                     "openrouter", f"HTTP error: {exc} (attempt {attempt}/{MAX_RETRIES})"
                 )
-                logger.warning("OpenRouter HTTP error: %s. Retry %d/%d", exc, attempt, MAX_RETRIES)
+                logger.warning(
+                    "OpenRouter HTTP error: %s. Retry %d/%d", exc, attempt, MAX_RETRIES
+                )
                 import asyncio
-                await asyncio.sleep(RETRY_BACKOFF_BASE ** attempt)
+
+                await asyncio.sleep(RETRY_BACKOFF_BASE**attempt)
 
         # All retries exhausted
         raise last_error or LLMProviderError("openrouter", "All retries exhausted.")

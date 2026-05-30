@@ -17,6 +17,7 @@ class MockResponse(BaseModel):
 # INIT TESTS
 # -----------------------------
 
+
 def test_empty_base_url():
     with pytest.raises(LLMProviderError):
         OllamaProvider(base_url="")
@@ -31,14 +32,13 @@ def test_empty_model():
 # COMPLETE SUCCESS TEST
 # -----------------------------
 
+
 @pytest.mark.asyncio
 async def test_complete_success():
     provider = OllamaProvider()
 
     mock_response = Mock()
-    mock_response.json.return_value = {
-        "response": json.dumps({"message": "Hello"})
-    }
+    mock_response.json.return_value = {"response": json.dumps({"message": "Hello"})}
     mock_response.raise_for_status.return_value = None
 
     mock_client = AsyncMock()
@@ -60,14 +60,13 @@ async def test_complete_success():
 # EMPTY RESPONSE TEST
 # -----------------------------
 
+
 @pytest.mark.asyncio
 async def test_complete_empty_response():
     provider = OllamaProvider()
 
     mock_response = Mock()
-    mock_response.json.return_value = {
-        "response": ""
-    }
+    mock_response.json.return_value = {"response": ""}
     mock_response.raise_for_status.return_value = None
 
     mock_client = AsyncMock()
@@ -88,14 +87,13 @@ async def test_complete_empty_response():
 # INVALID JSON TEST
 # -----------------------------
 
+
 @pytest.mark.asyncio
 async def test_complete_invalid_json():
     provider = OllamaProvider()
 
     mock_response = Mock()
-    mock_response.json.return_value = {
-        "response": "not valid json"
-    }
+    mock_response.json.return_value = {"response": "not valid json"}
     mock_response.raise_for_status.return_value = None
 
     mock_client = AsyncMock()
@@ -115,6 +113,7 @@ async def test_complete_invalid_json():
 # -----------------------------
 # CONNECTION ERROR TEST
 # -----------------------------
+
 
 @pytest.mark.asyncio
 async def test_complete_connection_error():
@@ -138,6 +137,7 @@ async def test_complete_connection_error():
 # TIMEOUT ERROR TEST (NEW)
 # -----------------------------
 
+
 @pytest.mark.asyncio
 async def test_complete_timeout_error():
     provider = OllamaProvider()
@@ -159,6 +159,7 @@ async def test_complete_timeout_error():
 # -----------------------------
 # STREAM SUCCESS TEST
 # -----------------------------
+
 
 @pytest.mark.asyncio
 async def test_stream_success():
@@ -205,6 +206,7 @@ async def test_stream_success():
 # STREAM MALFORMED JSON TEST
 # -----------------------------
 
+
 @pytest.mark.asyncio
 async def test_stream_skips_invalid_json():
     provider = OllamaProvider()
@@ -247,6 +249,7 @@ async def test_stream_skips_invalid_json():
 # STREAM CONNECTION ERROR
 # -----------------------------
 
+
 @pytest.mark.asyncio
 async def test_stream_connection_error():
     provider = OllamaProvider()
@@ -271,6 +274,7 @@ async def test_stream_connection_error():
 # -----------------------------
 # STREAM TIMEOUT ERROR (NEW)
 # -----------------------------
+
 
 @pytest.mark.asyncio
 async def test_stream_timeout_error():

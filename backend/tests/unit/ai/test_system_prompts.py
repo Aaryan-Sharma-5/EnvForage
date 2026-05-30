@@ -1,4 +1,5 @@
 """Tests for system prompt constants and integrity."""
+
 from app.ai.prompts.system import (
     AVAILABLE_REPAIR_TEMPLATES,
     TROUBLESHOOT_SYSTEM_PROMPT,

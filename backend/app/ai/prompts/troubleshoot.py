@@ -4,6 +4,8 @@ The builder takes structured data (DiagnosticReport, profile info, user
 description) and produces a safe, optimised user-message for the LLM.
 All sensitive data is sanitised and token budgets are respected.
 """
+
+import re
 from typing import Any
 
 from app.ai.models import TroubleshootRequest
@@ -28,7 +30,9 @@ class TroubleshootPromptBuilder:
     # Maximum characters for user description (prompt injection defence)
     MAX_USER_DESC_CHARS = 500
 
-    def build(self, request: TroubleshootRequest, history: list[Any] | None = None) -> str:
+    def build(
+        self, request: TroubleshootRequest, history: list[Any] | None = None
+    ) -> str:
         """
         Build the user message from a TroubleshootRequest.
 
@@ -71,7 +75,9 @@ class TroubleshootPromptBuilder:
         lines = ["## PREVIOUS SUGGESTIONS IN THIS SESSION"]
         for fix in history:
             # fix is an AISuggestion DB model
-            lines.append(f"Step {getattr(fix, 'step_number', '?')}: {getattr(fix, 'title', 'Unknown')}")
+            lines.append(
+                f"Step {getattr(fix, 'step_number', '?')}: {getattr(fix, 'title', 'Unknown')}"
+            )
             lines.append(f"  {getattr(fix, 'description', '')}")
         return "\n".join(lines)
 
@@ -85,23 +91,29 @@ class TroubleshootPromptBuilder:
         # OS
         if diag.get("os"):
             os_info = diag["os"]
-            lines.append(f"OS: {os_info.get('name', 'Unknown')} "
-                         f"({os_info.get('architecture', '?')})")
+            lines.append(
+                f"OS: {os_info.get('name', 'Unknown')} "
+                f"({os_info.get('architecture', '?')})"
+            )
             if os_info.get("wsl_version"):
                 lines.append(f"WSL: {os_info['wsl_version']}")
 
         # CPU
         if diag.get("cpu"):
             cpu = diag["cpu"]
-            lines.append(f"CPU: {cpu.get('brand', 'Unknown')} "
-                         f"({cpu.get('cores', '?')} cores, "
-                         f"{cpu.get('threads', '?')} threads)")
+            lines.append(
+                f"CPU: {cpu.get('brand', 'Unknown')} "
+                f"({cpu.get('cores', '?')} cores, "
+                f"{cpu.get('threads', '?')} threads)"
+            )
 
         # RAM
         if diag.get("ram"):
             ram = diag["ram"]
-            lines.append(f"RAM: {ram.get('total_gb', '?')} GB total, "
-                         f"{ram.get('available_gb', '?')} GB available")
+            lines.append(
+                f"RAM: {ram.get('total_gb', '?')} GB total, "
+                f"{ram.get('available_gb', '?')} GB available"
+            )
 
         # GPU(s)
         gpus = diag.get("gpus", [])
@@ -130,8 +142,10 @@ class TroubleshootPromptBuilder:
         # Python
         active_py = diag.get("active_python")
         if active_py:
-            lines.append(f"Active Python: {active_py.get('version', '?')} "
-                         f"at {active_py.get('path', '?')}")
+            lines.append(
+                f"Active Python: {active_py.get('version', '?')} "
+                f"at {active_py.get('path', '?')}"
+            )
             if active_py.get("is_venv"):
                 lines.append(f"  (virtual env: {active_py.get('venv_path', '?')})")
 
@@ -168,8 +182,10 @@ class TroubleshootPromptBuilder:
         cuda_ver = request.diagnostic.get("cuda", {}).get("version")
         if cuda_ver and cuda_ver in CUDA_MATRIX:
             entry = CUDA_MATRIX[cuda_ver]
-            lines.append(f"CUDA {cuda_ver} requires driver >= {entry.min_driver_linux} (Linux) "
-                         f"/ {entry.min_driver_windows} (Windows)")
+            lines.append(
+                f"CUDA {cuda_ver} requires driver >= {entry.min_driver_linux} (Linux) "
+                f"/ {entry.min_driver_windows} (Windows)"
+            )
             lines.append(f"Supported cuDNN: {', '.join(entry.cudnn_versions)}")
 
         # Show PyTorch CUDA support
@@ -181,14 +197,27 @@ class TroubleshootPromptBuilder:
 
         return "\n".join(lines)
 
+    def _sanitize_markdown(self, text: str) -> str:
+        """
+        Remove markdown structural characters to reduce prompt injection risk.
+        """
+
+        text = re.sub(r"^\s*(?:[#>*\-+]+|\d+\.)\s*", "", text, flags=re.MULTILINE)
+
+        text = text.replace("`", "")
+        text = text.replace("|", "")
+
+        return text
+
     def _build_user_description(self, description: str) -> str:
         """Sanitise and include the user's free-text description."""
         # Truncate to prevent token overflow / injection
-        sanitised = description[:self.MAX_USER_DESC_CHARS].strip()
+        sanitised = description[: self.MAX_USER_DESC_CHARS].strip()
         # Strip any attempt to override system instructions
         sanitised = sanitised.replace("RULES", "[REDACTED]")
         sanitised = sanitised.replace("IGNORE", "[REDACTED]")
         sanitised = sanitised.replace("system prompt", "[REDACTED]")
+        sanitised = self._sanitize_markdown(sanitised)
 
         return f"## USER DESCRIPTION\n{sanitised}"
 

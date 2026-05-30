@@ -4,40 +4,51 @@ These schemas define the HTTP request/response contracts exposed by the
 API. They are distinct from the internal AI models in ``app.ai.models``
 to maintain a clean separation between API surface and internal logic.
 """
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 # ── Troubleshoot ──────────────────────────────────────────────────────────────
 
+
 class TroubleshootRequestSchema(BaseModel):
     """POST /api/v1/troubleshoot — request body."""
+
     diagnostic: dict[str, Any] = Field(
-        ..., description="Raw DiagnosticReport JSON from the CLI agent or frontend.",
+        ...,
+        description="Raw DiagnosticReport JSON from the CLI agent or frontend.",
     )
     profile_slug: str | None = Field(
-        None, description="Target profile slug (e.g. 'pytorch-cuda').",
+        None,
+        description="Target profile slug (e.g. 'pytorch-cuda').",
     )
     profile_name: str | None = Field(
-        None, description="Human-readable profile name.",
+        None,
+        description="Human-readable profile name.",
     )
     target_os: str | None = Field(
-        None, description="Target OS: LINUX, WSL, or WIN.",
+        None,
+        description="Target OS: LINUX, WSL, or WIN.",
     )
     python_version: str | None = Field(
-        None, description="Requested Python version (e.g. '3.11').",
+        None,
+        description="Requested Python version (e.g. '3.11').",
     )
     cuda_version: str | None = Field(
-        None, description="Requested CUDA version (e.g. '12.1').",
+        None,
+        description="Requested CUDA version (e.g. '12.1').",
     )
     user_description: str = Field(
-        "", description="Free-text description of the issue from the user.",
+        "",
+        description="Free-text description of the issue from the user.",
         max_length=500,
     )
 
 
 class SuggestedFixSchema(BaseModel):
     """A single AI-generated fix suggestion."""
+
     step: int
     title: str
     description: str
@@ -48,6 +59,7 @@ class SuggestedFixSchema(BaseModel):
 
 class TroubleshootResponseSchema(BaseModel):
     """POST /api/v1/troubleshoot — response body."""
+
     session_id: str
     root_cause: str
     suggested_fixes: list[SuggestedFixSchema]
@@ -61,10 +73,13 @@ class TroubleshootResponseSchema(BaseModel):
 
 # ── Repair ────────────────────────────────────────────────────────────────────
 
+
 class RepairRequestSchema(BaseModel):
     """POST /api/v1/repair — request body."""
+
     template_id: str = Field(
-        ..., description="Repair template ID from AI suggestion.",
+        ...,
+        description="Repair template ID from AI suggestion.",
     )
     params: dict[str, Any] = Field(
         default_factory=dict,
@@ -74,6 +89,7 @@ class RepairRequestSchema(BaseModel):
 
 class RepairResponseSchema(BaseModel):
     """POST /api/v1/repair — response body."""
+
     template_id: str
     filename: str
     content: str
@@ -87,10 +103,50 @@ class RepairResponseSchema(BaseModel):
 
 class RepairTemplateInfoSchema(BaseModel):
     """A single repair template description."""
+
     id: str
     description: str
 
 
 class RepairTemplateListResponseSchema(BaseModel):
     """GET /api/v1/repair/templates — response body."""
+
     templates: list[RepairTemplateInfoSchema]
+
+
+# ── Diagnose Explain ─────────────────────────────────────────────────────────
+
+
+class DiagnoseExplainResponse(BaseModel):
+    """POST /api/v1/diagnose/explain — response body.
+
+    A plain-English explanation of what is wrong and what to do next,
+    produced by the AI Troubleshooting Layer from a DiagnosticReport.
+    """
+
+    issue_summary: str = Field(
+        ...,
+        description="Plain-English explanation of what is wrong.",
+    )
+    root_cause: str = Field(
+        ...,
+        description="Root cause (e.g. 'CUDA version mismatch').",
+    )
+    suggested_steps: list[str] = Field(
+        ...,
+        description="Ordered remediation steps in plain English. No auto-execution.",
+    )
+    safe_to_auto_fix: bool = Field(
+        False,
+        description="Whether the fix can be mapped to an existing Jinja2 repair template.",
+    )
+    confidence: float = Field(
+        0.0,
+        ge=0.0,
+        le=1.0,
+        description="AI confidence in the diagnosis.",
+    )
+    disclaimer: str = Field(
+        default="AI-generated advisory. Review all suggestions before executing.",
+        description="Safety disclaimer.",
+    )

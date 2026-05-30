@@ -5,9 +5,10 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import DB
+from app.middleware.rate_limit import general_rate_limit
 from app.models.diagnostic import VerificationCheck, VerificationResult
 from app.models.profile import EnvironmentProfile
 from app.schemas.verify import (
@@ -84,6 +85,7 @@ def parse_output(text: str) -> tuple[str, list[dict[str, Any]]]:
 async def verify_environment(
     payload: VerificationRequest,
     db: DB,
+    _rate_limit: None = Depends(general_rate_limit),
 ) -> VerificationResponse:
     """
     Ingest and parse the output of a verification script.
@@ -140,4 +142,3 @@ async def verify_environment(
             for c in parsed_checks
         ],
     )
-

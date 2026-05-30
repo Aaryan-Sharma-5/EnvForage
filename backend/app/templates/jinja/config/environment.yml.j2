@@ -12,11 +12,16 @@
 
 name: {{ profile.name }}
 channels:
+{% if conda_channels is defined and conda_channels %}
+{% for channel in conda_channels %}  - {{ channel }}
+{% endfor %}
+{% else %}
 {% if cuda_version %}  - pytorch
   - nvidia
 {% elif rocm_version %}  - pytorch
 {% endif %}  - conda-forge
   - defaults
+{% endif %}
   
 dependencies:
   - python={{ python_version }}

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Frontend Containerization & Orchestration:**
+  - Added a multi-stage `Dockerfile` and `.dockerignore` for the Next.js frontend application.
+  - Configured Next.js standalone output mode in `next.config.ts` for optimized production container execution.
+  - Integrated the containerized frontend into `docker-compose.yml` (development) and `docker-compose.prod.yml` (production).
+  - Updated the GitHub release workflow (`release.yml`) to build and push the frontend image to GitHub Container Registry on tag releases.
 - **uv Package Manager Support:**
   - Added `use_uv` boolean field to `GenerationRequest` schema — when `true`, generated scripts bootstrap and use `uv` instead of `pip` for significantly faster package installation.
   - Updated `setup_windows.ps1.j2` to bootstrap `uv` via `Invoke-RestMethod` and conditionally use `uv pip install`.

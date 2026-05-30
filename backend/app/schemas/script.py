@@ -12,12 +12,13 @@ OutputFormat = Literal[
     "setup.ps1",
     "requirements.txt",
     "Dockerfile",
+    "Makefile",
     "environment.yml",
     "docker-compose.yml",
     "devcontainer.json",
     ".gitignore",
     "pyproject.toml",
-    "pyproject.poetry.toml"
+    "pyproject.poetry.toml",
 ]
 
 
@@ -208,4 +209,3 @@ class GenerationErrorResponse(BaseModel):
             }
         ],
     )
-

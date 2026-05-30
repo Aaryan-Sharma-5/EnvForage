@@ -8,9 +8,11 @@ A Source represents one environment we can compare. The MVP supports two:
 Future sources (poetry.lock, uv.lock, remote envforge envs via #85's REST API)
 slot in by subclassing Source and yielding Package instances.
 """
+
 from __future__ import annotations
 import tomllib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -71,11 +73,12 @@ class LocalEnvironment(Source):
             entries = json.loads(result.stdout)
         except json.JSONDecodeError as exc:
             raise RuntimeError(
-                f"`pip list` returned malformed JSON output."
+                "`pip list` returned malformed JSON output."
             ) from exc
 
         for entry in entries:
             yield Package(name=entry["name"], version=entry["version"])
+
 
 class LockfileSource(Source):
     """Requirements-format lockfile (one `package==version` per line).
@@ -96,13 +99,9 @@ class LockfileSource(Source):
         except FileNotFoundError as exc:
             raise RuntimeError(f"Lockfile not found: {self.path}") from exc
         except UnicodeDecodeError as exc:
-            raise RuntimeError(
-                f"Lockfile is not valid UTF-8: {self.path} ({exc.reason})"
-            ) from exc
+            raise RuntimeError(f"Lockfile is not valid UTF-8: {self.path} ({exc.reason})") from exc
         except (PermissionError, IsADirectoryError, OSError) as exc:
-            raise RuntimeError(
-                f"Could not read lockfile {self.path}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Could not read lockfile {self.path}: {exc}") from exc
 
         for raw_line in content.splitlines():
             line = raw_line.split("#", 1)[0].strip()
@@ -121,19 +120,17 @@ class LockfileSource(Source):
             version = version_part.split(";", 1)[0].strip()
             if name and version:
                 yield Package(name=name, version=version)
-                
+
+
 class ConfigFileSource(Source):
-    """Reads a pyproject.toml file (Poetry format) and extracts dependencies.
+    """Reads a pyproject.toml file (Poetry or PEP 621 format) and extracts dependencies.
 
-    Currently supports the `[tool.poetry.dependencies]` section. Version
-    specifiers with leading operators (`^`, `~`, `>=`, etc.) have the operator
-    stripped so they can be compared against other sources. The `python`
-    requirement is excluded since it's the Python version, not a dependency.
-    Git, path, and URL dependencies are skipped (no comparable version).
-
-    PEP 621 `[project.dependencies]` support is intentionally deferred to a
-    follow-up PR — that format uses PEP 440 specifier strings in a list
-    rather than a name->spec mapping, so it warrants distinct parsing logic.
+    Supports both the `[tool.poetry.dependencies]` section and the standardized
+    PEP 621 `[project.dependencies]` format. Version specifiers with leading
+    operators (`^`, `~`, `>=`, etc.) have the operator stripped so they can be
+    compared against other sources. The `python` requirement is excluded since
+    it's the Python version, not a dependency. Git, path, and URL dependencies
+    are skipped (no comparable version).
     """
 
     def __init__(self, path) -> None:
@@ -153,17 +150,30 @@ class ConfigFileSource(Source):
                 f"Config file is not valid UTF-8: {self.path} ({exc.reason})"
             ) from exc
         except (PermissionError, IsADirectoryError, OSError) as exc:
-            raise RuntimeError(
-                f"Could not read config file {self.path}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Could not read config file {self.path}: {exc}") from exc
 
-        deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
-        for name, spec in deps.items():
+        # Parse Poetry format dependencies
+        poetry_deps = data.get("tool", {}).get("poetry", {}).get("dependencies", {})
+        for name, spec in poetry_deps.items():
             if name == "python":
                 continue
             version = self._extract_version(spec)
             if version:
                 yield Package(name=name, version=version)
+
+        # Parse PEP 621 standard dependencies
+        project_deps = data.get("project", {}).get("dependencies", [])
+        for dep_str in project_deps:
+            # Parse PEP 508 string (e.g., "requests>=2.31.0; python_version<'3.10'")
+            # Simple parser for MVP: split on operators
+            match = re.match(
+                r"^([a-zA-Z0-9_\-\.]+)\s*(>=|==|<=|>|<|~=|!=)\s*([^;,\s]+)",
+                dep_str.strip(),
+            )
+            if match:
+                name, op, version = match.groups()
+                if name != "python":
+                    yield Package(name=name, version=version)
 
     @staticmethod
     def _extract_version(spec) -> Optional[str]:

@@ -1,6 +1,7 @@
 """
 Profile service — business logic for profile CRUD operations.
 """
+
 import uuid
 from datetime import UTC, datetime
 
@@ -29,28 +30,36 @@ async def list_profiles(
     )
 
     if filters.os:
-        query = query.where(
-            EnvironmentProfile.os_support.contains([filters.os])
-        )
+        query = query.where(EnvironmentProfile.os_support.contains([filters.os]))
 
     if filters.cuda_required is not None:
-        query = query.where(
-            EnvironmentProfile.cuda_required == filters.cuda_required
-        )
+        query = query.where(EnvironmentProfile.cuda_required == filters.cuda_required)
 
     if filters.tags:
         for tag in filters.tags:
-            query = query.where(
-                EnvironmentProfile.tags.contains([tag])
-            )
+            query = query.where(EnvironmentProfile.tags.contains([tag]))
 
-    # Count total (before pagination)
-    count_result = await db.execute(
-        select(EnvironmentProfile.id)
+    # Count total (before pagination) — apply same filters as main query
+    from sqlalchemy import func
+
+    count_query = (
+        select(func.count(EnvironmentProfile.id))
         .where(EnvironmentProfile.deleted_at.is_(None))
         .where(EnvironmentProfile.status == "ACTIVE")
     )
-    total = len(count_result.all())
+    if filters.os:
+        count_query = count_query.where(
+            EnvironmentProfile.os_support.contains([filters.os])
+        )
+    if filters.cuda_required is not None:
+        count_query = count_query.where(
+            EnvironmentProfile.cuda_required == filters.cuda_required
+        )
+    if filters.tags:
+        for tag in filters.tags:
+            count_query = count_query.where(EnvironmentProfile.tags.contains([tag]))
+    count_result = await db.execute(count_query)
+    total = count_result.scalar_one()
 
     # Apply pagination
     offset = (filters.page - 1) * filters.limit
@@ -136,4 +145,3 @@ async def delete_profile(
         await db.rollback()
         raise
     return True
-

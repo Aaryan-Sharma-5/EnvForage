@@ -112,27 +112,25 @@ export default function ProfilesPage() {
             <span>Filters:</span>
           </div>
 
-          {/* OS Dropdown */}
           <select
             value={selectedOS}
             onChange={(e) => setSelectedOS(e.target.value)}
-            style={{ background: '#1e1e2e', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-primary)', padding: '0.5rem 1rem', outline: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+            style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-primary)', padding: '0.5rem 1rem', outline: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
           >
-            <option value="ALL" style={{ background: '#1e1e2e', color: '#e2e8f0' }}>All Operating Systems</option>
-            <option value="WINDOWS" style={{ background: '#1e1e2e', color: '#e2e8f0' }}>Windows</option>
-            <option value="LINUX" style={{ background: '#1e1e2e', color: '#e2e8f0' }}>Linux</option>
-            <option value="WSL" style={{ background: '#1e1e2e', color: '#e2e8f0' }}>WSL</option>
+            <option value="ALL">All Operating Systems</option>
+            <option value="WINDOWS">Windows</option>
+            <option value="LINUX">Linux</option>
+            <option value="WSL">WSL</option>
           </select>
 
-          {/* CUDA Dropdown */}
           <select
             value={cudaFilter}
             onChange={(e) => setCudaFilter(e.target.value)}
-            style={{ background: '#1e1e2e', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-primary)', padding: '0.5rem 1rem', outline: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+            style={{ background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-primary)', padding: '0.5rem 1rem', outline: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
           >
-            <option value="ALL" style={{ background: '#1e1e2e', color: '#e2e8f0' }}>All CUDA Configs</option>
-            <option value="REQUIRED" style={{ background: '#1e1e2e', color: '#e2e8f0' }}>CUDA Required</option>
-            <option value="OPTIONAL" style={{ background: '#1e1e2e', color: '#e2e8f0' }}>CPU / Non-CUDA</option>
+            <option value="ALL">All CUDA Configs</option>
+            <option value="REQUIRED">CUDA Required</option>
+            <option value="OPTIONAL">CPU / Non-CUDA</option>
           </select>
         </div>
       </motion.div>

@@ -90,11 +90,16 @@ class OpenAIProvider(LLMProvider):
 
                 return response_model.model_validate_json(content)
             except httpx.HTTPStatusError as e:
-                raise LLMProviderError("openai", f"OpenAI API error occured: {e.response.text}")
+                raise LLMProviderError(
+                    "openai", f"OpenAI API error occured: {e.response.text}"
+                )
             except LLMProviderError:
                 raise
             except Exception as e:
-                raise LLMProviderError("openai", f"Unexpected connection error under OpenAI provider: {str(e)}",) from e
+                raise LLMProviderError(
+                    "openai",
+                    f"Unexpected connection error under OpenAI provider: {str(e)}",
+                ) from e
 
     def stream(
         self,
@@ -139,7 +144,6 @@ class OpenAIProvider(LLMProvider):
                             json=payload,
                             headers=self.headers,
                         ) as response:
-
                             if response.status_code == 429:
                                 retry_after = response.headers.get("Retry-After")
 
@@ -150,7 +154,9 @@ class OpenAIProvider(LLMProvider):
                                         delay = max(0, float(retry_after))
                                     else:
                                         try:
-                                            retry_at = parsedate_to_datetime(retry_after)
+                                            retry_at = parsedate_to_datetime(
+                                                retry_after
+                                            )
                                             now = datetime.now(UTC)
 
                                             delay = max(
@@ -162,11 +168,13 @@ class OpenAIProvider(LLMProvider):
                                             delay = None
 
                                 if delay is None:
-                                    delay = 2 ** attempt
+                                    delay = 2**attempt
 
                                 logger.warning(
                                     "OpenAI rate limited (429). Retrying in %s seconds... (Attempt %d/%d)",
-                                    delay, attempt + 1, max_retries
+                                    delay,
+                                    attempt + 1,
+                                    max_retries,
                                 )
 
                                 if attempt >= max_retries - 1:
@@ -202,7 +210,9 @@ class OpenAIProvider(LLMProvider):
                                 try:
                                     data = json.loads(data_str)
                                 except json.JSONDecodeError:
-                                    logger.debug("Skipping malformed stream chunk: %s", data_str)
+                                    logger.debug(
+                                        "Skipping malformed stream chunk: %s", data_str
+                                    )
                                     continue
 
                                 choices = data.get("choices", [])
@@ -221,14 +231,18 @@ class OpenAIProvider(LLMProvider):
                         # If this is our last attempt, don't sleep; let the loop finish and drop to final exception
                         if attempt >= max_retries - 1:
                             logger.error(
-                                "Transient network connection error on final attempt: %s.", str(e)
+                                "Transient network connection error on final attempt: %s.",
+                                str(e),
                             )
                             break
 
                         delay = float(base_delay**attempt)
                         logger.warning(
                             "Transient network error during OpenAI stream: %s. Retrying in %d seconds... (Attempt %d/%d)",
-                            str(e), delay, attempt + 1, max_retries
+                            str(e),
+                            delay,
+                            attempt + 1,
+                            max_retries,
                         )
                         await asyncio.sleep(delay or 0.0)
                         continue
@@ -240,4 +254,3 @@ class OpenAIProvider(LLMProvider):
                 )
 
         return generator()
-

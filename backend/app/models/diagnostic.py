@@ -1,4 +1,5 @@
 """SQLAlchemy ORM models for diagnostic reports and verification results."""
+
 import uuid
 from datetime import datetime
 from typing import Any
@@ -40,8 +41,14 @@ class VerificationResult(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    report_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("diagnostic_reports.id", ondelete="SET NULL"))
-    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("environment_profiles.id", ondelete="CASCADE"), nullable=False)
+    report_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("diagnostic_reports.id", ondelete="SET NULL")
+    )
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("environment_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     overall_status: Mapped[str] = mapped_column(String(16), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -63,7 +70,11 @@ class VerificationCheck(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    result_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("verification_results.id", ondelete="CASCADE"), nullable=False)
+    result_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("verification_results.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     check_name: Mapped[str] = mapped_column(String(128), nullable=False)
     passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     detail: Mapped[str | None] = mapped_column(Text)

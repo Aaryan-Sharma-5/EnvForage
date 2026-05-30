@@ -7,6 +7,7 @@ Sources:
   - AMD ROCm Release Notes: https://rocm.docs.amd.com/en/latest/release/release-notes.html
   - PyTorch ROCm Support: https://pytorch.org/get-started/locally/
 """
+
 from app.compatibility.models import ROCMMatrixEntry
 
 # ── ROCm Version → Driver + GPU Matrix ───────────────────────────────────────
@@ -36,6 +37,18 @@ ROCM_MATRIX: dict[str, ROCMMatrixEntry] = {
         supported_gpus=["gfx906", "gfx908", "gfx90a", "gfx940", "gfx1030", "gfx1100"],
         notes="Latest stable. Significant performance boost for LLMs.",
     ),
+    "6.1.0": ROCMMatrixEntry(
+        rocm_version="6.1.0",
+        min_driver_linux="6.7",
+        supported_gpus=["gfx90a", "gfx942", "gfx1030", "gfx1100", "gfx1102"],
+        notes="Added support for MI300X and Radeon RX 7900 GRE.",
+    ),
+    "6.2.0": ROCMMatrixEntry(
+        rocm_version="6.2.0",
+        min_driver_linux="6.8",
+        supported_gpus=["gfx90a", "gfx942", "gfx1030", "gfx1100", "gfx1102", "gfx1150"],
+        notes="Latest stable release. Support for PyTorch 2.4+.",
+    ),
 }
 
 SUPPORTED_ROCM_VERSIONS: list[str] = sorted(ROCM_MATRIX.keys())
@@ -48,7 +61,8 @@ FRAMEWORK_ROCM_SUPPORT: dict[str, dict[str, list[str]]] = {
         "2.1.0": ["5.4.2", "5.6.0"],
         "2.2.0": ["5.6.0", "5.7.0"],
         "2.3.0": ["5.7.0", "6.0.0"],
-        "2.4.0": ["6.0.0"],
+        "2.4.0": ["6.0.0", "6.1.0"],
+        "2.5.0": ["6.2.0"],
     },
     "tensorflow": {
         "2.13.0": ["5.4.2"],

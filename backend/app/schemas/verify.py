@@ -43,6 +43,7 @@ class VerificationRequest(BaseModel):
     raw_output: str = Field(
         ...,
         description="Raw terminal output produced by the verification script.",
+        max_length=1_048_576,  # 1 MB limit to prevent abuse (enforced by middleware)
         examples=[
             "[PASS] Python 3.10 detected\n[WARN] CUDA version is newer than expected"
         ],
@@ -102,4 +103,3 @@ class VerificationResponse(BaseModel):
             }
         },
     )
-

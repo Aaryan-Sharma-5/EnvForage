@@ -82,6 +82,8 @@ jobs:
   frontend-build:
     name: Frontend Build & Lint
     runs-on: ubuntu-latest
+    env:
+      BACKEND_API_URL: http://localhost:8000
     steps:
       - uses: actions/checkout@v4
         with:

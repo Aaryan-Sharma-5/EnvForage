@@ -1,14 +1,32 @@
 """
 Tests for centralized exception handling.
 No database required — service layer is mocked.
+Auth dependencies are stubbed out so these tests focus solely on
+exception-to-HTTP-response mapping, not authentication logic.
 """
+
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
+from app.api.deps import require_admin
 from app.main import app
 
 client = TestClient(app)
+
+
+def _stub_require_admin() -> None:
+    """No-op stub that bypasses admin key validation."""
+    return None
+
+
+@pytest.fixture(autouse=True)
+def _override_require_admin():
+    """Stub out require_admin for every test in this module."""
+    app.dependency_overrides[require_admin] = _stub_require_admin
+    yield
+    app.dependency_overrides.pop(require_admin, None)
 
 
 def test_get_profile_not_found_returns_404():

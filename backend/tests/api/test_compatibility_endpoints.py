@@ -2,6 +2,7 @@
 Tests for GET /api/v1/compatibility/* endpoints.
 Issue #85 — Expose Compatibility Matrices via REST API.
 """
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -12,6 +13,7 @@ BASE = "/api/v1/compatibility"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
+
 def test_summary_returns_all_three_matrices():
     res = client.get(BASE)
     assert res.status_code == 200
@@ -21,6 +23,7 @@ def test_summary_returns_all_three_matrices():
 
 
 # ── CUDA ──────────────────────────────────────────────────────────────────────
+
 
 def test_cuda_matrix_returns_data():
     res = client.get(f"{BASE}/cuda")
@@ -61,6 +64,7 @@ def test_cuda_framework_support_map():
 
 # ── ROCm ──────────────────────────────────────────────────────────────────────
 
+
 def test_rocm_matrix_returns_data():
     res = client.get(f"{BASE}/rocm")
     assert res.status_code == 200
@@ -85,6 +89,7 @@ def test_rocm_unknown_version_returns_404():
 
 
 # ── Python ────────────────────────────────────────────────────────────────────
+
 
 def test_python_matrix_returns_data():
     res = client.get(f"{BASE}/python")

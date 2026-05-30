@@ -1,4 +1,5 @@
 """Unit tests for profiles.yaml Pydantic validation schemas."""
+
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -9,9 +10,7 @@ from pydantic import ValidationError
 
 from app.schemas.seed_profile import ProfileSeedSchema, ProfilesYamlSchema
 
-SEEDS_FILE = (
-    Path(__file__).resolve().parents[3] / "seeds" / "profiles.yaml"
-)
+SEEDS_FILE = Path(__file__).resolve().parents[3] / "seeds" / "profiles.yaml"
 
 
 def _valid_profile() -> dict[str, Any]:
@@ -80,9 +79,7 @@ def test_non_string_description_raises():
 
 
 def test_profiles_yaml_root_schema():
-    root = ProfilesYamlSchema.model_validate(
-        {"profiles": [_valid_profile()]}
-    )
+    root = ProfilesYamlSchema.model_validate({"profiles": [_valid_profile()]})
     assert len(root.profiles) == 1
 
 

@@ -27,6 +27,9 @@
   },
   "postCreateCommand": "pip install {% for pkg in packages %}\"{{ pkg.pip_spec }}\" {% endfor %}",
   "remoteUser": "vscode",
+{% if rocm_version|default(None) %}
+  "runArgs": ["--device=/dev/kfd", "--device=/dev/dri"],
+{% endif %}
   "mounts": [],
   "forwardPorts": [],
   "portsAttributes": {},

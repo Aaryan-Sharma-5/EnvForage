@@ -3,6 +3,7 @@ FastAPI application factory and lifespan management.
 """
 
 import asyncio
+import typing
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -12,6 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api.v1 import (
+    authentication,
     compatibility,
     diagnose,
     profiles,
@@ -24,6 +26,8 @@ from app.cache import get_redis_client
 from app.config import get_settings
 from app.core.handlers import register_exception_handlers
 from app.database import AsyncSessionLocal
+from app.middleware.metrics import setup_metrics
+from app.middleware.payload_size import PayloadSizeLimitMiddleware
 
 
 @asynccontextmanager
@@ -55,8 +59,8 @@ def create_app() -> FastAPI:
     )
 
     register_exception_handlers(app)
-
     # ── CORS ─────────────────────────────────────────────────
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins_list,
@@ -64,6 +68,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(PayloadSizeLimitMiddleware)
+
+    # ── Prometheus Metrics ────────────────────────────────────
+    setup_metrics(app)
 
     # ── Routers ───────────────────────────────────────────────
     app.include_router(profiles.router, prefix="/api/v1", tags=["profiles"])
@@ -73,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(repair.router, prefix="/api/v1", tags=["ai"])
     app.include_router(verify.router, prefix="/api/v1", tags=["verify"])
     app.include_router(compatibility.router, prefix="/api/v1", tags=["compatibility"])
+    app.include_router(authentication.router, prefix="/api/v1", tags=["auth"])
 
     # ── Health check ──────────────────────────────────────────
     @app.get("/health", include_in_schema=False)
@@ -90,12 +99,17 @@ def create_app() -> FastAPI:
             overall = "degraded"
 
         try:
-            async with asyncio.timeout(2):
+            async with asyncio.timeout(
+                1
+            ):  # Enforce 1s timeout to prevent TCP blackhole hang
                 redis = await get_redis_client()
                 if redis is None:
                     redis_status = "not_configured"
                 else:
-                    await redis.ping()  # type: ignore[misc]
+                    await typing.cast(typing.Any, redis).ping()
+        except TimeoutError:
+            redis_status = "unavailable"
+            overall = "degraded"
         except Exception:
             redis_status = "unavailable"
             overall = "degraded"

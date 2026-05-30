@@ -5,7 +5,9 @@ Validates rendered output for dangerous shell patterns before
 returning scripts to the client. This is a hard safety gate —
 no script passes without this validation.
 """
+
 import asyncio
+import concurrent.futures
 import logging
 import re
 
@@ -16,7 +18,6 @@ from app.ai.providers.base import LLMProvider
 logger = logging.getLogger(__name__)
 
 FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
-    # Pattern, Description
     (r"rm\s+-[rRf]{1,3}\s+/", "Recursive delete of filesystem path"),
     (r"rm\s+-[rRf]{1,3}\s+\$HOME", "Recursive delete of home directory"),
     (r"rm\s+-[rRf]{1,3}\s+~", "Recursive delete of home directory (tilde)"),
@@ -29,9 +30,46 @@ FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
     (r"DROP\s+DATABASE", "SQL database destruction"),
     (r"DROP\s+TABLE", "SQL table destruction"),
     (r"TRUNCATE\s+TABLE", "SQL table truncation"),
-    (r"curl\s+.*\|\s*(ba)?sh", "Curl-pipe-to-shell (untrusted exec)"),
-    (r"wget\s+.*\|\s*(ba)?sh", "Wget-pipe-to-shell (untrusted exec)"),
-    (r"wget\s+.*-O\s+\S+.*&&.*sh", "Wget download-and-execute pattern"),
+    (
+        r"curl\s+(?:-[^\s|;&]+?\s+)*?https?://(?!(?:micro\.mamba\.pm|astral\.sh)/)\S+\s*\|\s*(?:ba)?sh",
+        "Curl-pipe-to-shell (untrusted exec)",
+    ),
+    (
+        r"wget\s+(?:-[^\s|;&]+?\s+)*?https?://(?!(?:micro\.mamba\.pm|astral\.sh)/)\S+\s*\|\s*(?:ba)?sh",
+        "Wget-pipe-to-shell (untrusted exec)",
+    ),
+    (
+        r"wget\s+[^;\|&]+?(-O\s+\S+).*(?:&&|;|\||\|\||\n)\s*(?:ba)?sh\s+\1",
+        "Wget download-and-execute pattern (sequential/chained)",
+    ),
+    (
+        r"wget\s+[^;\|&]+?(-O\s+(\S+)).*(?:&&|;|\||\|\||\n)\s*(?:ba)?sh\s+\2",
+        "Wget download-and-execute pattern (explicit target)",
+    ),
+    (
+        r"curl\s+[^;\|&]*?(-o|--output)\s+(\S+).*(?:&&|;|\||\|\||\n)\s*(?:ba)?sh\s+\2",
+        "Curl download-and-execute pattern",
+    ),
+    (
+        r"curl\s+[^;\|&]*?(-O|--remote-name)\s+.*(?:&&|;|\||\|\||\n)\s*(?:ba)?sh\s+",
+        "Curl remote-name download-and-execute pattern",
+    ),
+    (
+        r"curl\s+[^;\|&]*?>\s*(\S+).*(?:&&|;|\||\|\||\n)\s*(?:ba)?sh\s+\1",
+        "Curl redirect download-and-execute pattern",
+    ),
+    (
+        r"(?:iex|Invoke-Expression)\s*\(?\s*(?:iwr|Invoke-WebRequest|Invoke-RestMethod|irm|curl|wget)\s+(?!https?://astral\.sh/)",
+        "PowerShell malicious download cradle",
+    ),
+    (
+        r"(?:iwr|Invoke-WebRequest|Invoke-RestMethod|irm|curl|wget)\s+(?!https?://astral\.sh/)\S+.*\s*\|\s*(?:iex|Invoke-Expression)",
+        "PowerShell piped download cradle",
+    ),
+    (
+        r"(?:iex|Invoke-Expression)\s*\(?\s*(?:\(?(?:New-Object)\s+Net\.WebClient\)?\.(?:DownloadString|DownloadFile))\s*\(",
+        "PowerShell .Net WebClient download cradle",
+    ),
     (r"eval\s+\$\(", "Eval of subshell output"),
     (r"base64\s+--decode\s*\|.*sh", "Base64 decode pipe to shell"),
 ]
@@ -55,8 +93,7 @@ class SafetyViolationError(Exception):
         self.description = description
         self.context = context
         super().__init__(
-            f"Safety violation detected: {description} "
-            f"(pattern: {pattern!r})"
+            f"Safety violation detected: {description} (pattern: {pattern!r})"
         )
 
 
@@ -98,13 +135,30 @@ def validate_rendered_output(
                     "LLM client does not implement a recognized completion method."
                 )
 
-            verdict = asyncio.run(
-                method_to_call(
-                    system_prompt=system_prompt,
-                    user_message=user_message,
-                    response_model=AISafetyVerdict,
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(
+                        asyncio.run,
+                        method_to_call(
+                            system_prompt=system_prompt,
+                            user_message=user_message,
+                            response_model=AISafetyVerdict,
+                        ),
+                    )
+                    verdict = future.result()
+            else:
+                verdict = asyncio.run(
+                    method_to_call(
+                        system_prompt=system_prompt,
+                        user_message=user_message,
+                        response_model=AISafetyVerdict,
+                    )
                 )
-            )
 
             if not verdict.is_safe:
                 raise SafetyViolationError(

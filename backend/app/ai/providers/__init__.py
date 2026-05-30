@@ -1,4 +1,5 @@
 """Provider factory — returns the configured LLM provider instance."""
+
 from app.ai.providers.base import LLMProvider, LLMProviderError
 
 
@@ -19,16 +20,19 @@ def get_provider() -> LLMProvider:
         LLMProviderError: If the configured provider is unknown or misconfigured.
     """
     from app.config import get_settings
+
     settings = get_settings()
 
     provider_name = settings.envforge_llm_provider.lower()
 
     if provider_name == "mock":
         from app.ai.providers.mock import MockProvider
+
         return MockProvider()
 
     if provider_name == "openrouter":
         from app.ai.providers.openrouter import OpenRouterProvider
+
         return OpenRouterProvider(
             api_key=settings.openrouter_api_key,
             model=settings.openrouter_model,
@@ -38,21 +42,20 @@ def get_provider() -> LLMProvider:
 
     if provider_name == "openai":
         from app.ai.providers.openai import OpenAIProvider
+
         # Safely extract dynamic configuration values from environment context settings
         api_key = settings.openai_api_key
         base_url = getattr(settings, "openai_base_url", "https://api.openai.com/v1")
 
-        return OpenAIProvider(
-            api_key=api_key,
-            base_url=base_url
-        )
+        return OpenAIProvider(api_key=api_key, base_url=base_url)
 
     if provider_name == "ollama":
         from app.ai.providers.ollama import OllamaProvider
+
         return OllamaProvider(
             base_url=settings.ollama_base_url,
             model=settings.ollama_model,
-    )
+        )
 
     raise LLMProviderError(
         provider_name,

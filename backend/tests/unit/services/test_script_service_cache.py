@@ -101,7 +101,9 @@ async def test_generate_scripts_returns_cached_resolved_environment(monkeypatch)
         def resolve(self, **kwargs):
             raise AssertionError("resolver should not run on cache hit")
 
-    monkeypatch.setattr(script_service, "get_redis_client", lambda: _fake_redis_client(redis))
+    monkeypatch.setattr(
+        script_service, "get_redis_client", lambda: _fake_redis_client(redis)
+    )
     monkeypatch.setattr(script_service, "_resolver", ResolverShouldNotRun())
     monkeypatch.setattr(script_service, "_renderer", FakeRenderer())
 
@@ -126,7 +128,9 @@ async def test_generate_scripts_caches_resolved_environment_on_miss(monkeypatch)
             return _resolved(version="2.2.0")
 
     resolver = CountingResolver()
-    monkeypatch.setattr(script_service, "get_redis_client", lambda: _fake_redis_client(redis))
+    monkeypatch.setattr(
+        script_service, "get_redis_client", lambda: _fake_redis_client(redis)
+    )
     monkeypatch.setattr(script_service, "_resolver", resolver)
     monkeypatch.setattr(script_service, "_renderer", FakeRenderer())
 

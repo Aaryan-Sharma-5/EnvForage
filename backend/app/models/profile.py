@@ -1,4 +1,5 @@
 """SQLAlchemy ORM models for environment profiles."""
+
 import uuid
 from datetime import date, datetime
 from typing import Any
@@ -65,7 +66,9 @@ class ProfilePackage(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     profile_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("environment_profiles.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("environment_profiles.id", ondelete="CASCADE"),
+        nullable=False,
     )
     package_name: Mapped[str] = mapped_column(String(128), nullable=False)
     version_spec: Mapped[str] = mapped_column(String(64), nullable=False)

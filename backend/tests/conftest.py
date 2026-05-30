@@ -1,4 +1,5 @@
 """Pytest configuration and shared fixtures."""
+
 import json
 import os
 
@@ -14,6 +15,9 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://test:test@localhost:5432/test",
 )
+# Provide a deterministic admin key for tests so require_admin dependency
+# does not return 503 (unconfigured) during the test suite.
+os.environ.setdefault("ADMIN_API_KEY", "test-admin-key-for-ci")
 import pytest
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -30,9 +34,11 @@ from app.database import Base
 def compile_array_sqlite(element, compiler, **kw):
     return "TEXT"
 
+
 @compiles(JSONB, "sqlite")
 def compile_jsonb_sqlite(element, compiler, **kw):
     return "JSON"
+
 
 # Compile containment operator (@>) for SQLite
 @compiles(BinaryExpression, "sqlite")
@@ -41,27 +47,33 @@ def compile_binary_sqlite(element, compiler, **kw):
     op_str = getattr(operator, "opstring", "")
     if op_str == "@>":
         left_type = element.left.type
-        if hasattr(left_type, 'item_type'):
+        if hasattr(left_type, "item_type"):
             left = compiler.process(element.left, **kw)
             right = compiler.process(element.right, **kw)
             return f"array_contains({left}, {right})"
     return compiler.visit_binary(element, **kw)
 
+
 # 2. Monkeypatch bind/result processors of postgresql.ARRAY for SQLite
 _orig_bind_processor = ARRAY.bind_processor
 _orig_result_processor = ARRAY.result_processor
 
+
 def new_bind_processor(self, dialect):
     if dialect.name == "sqlite":
+
         def process(value):
             if value is None:
                 return None
             return json.dumps(value)
+
         return process
     return _orig_bind_processor(self, dialect)
 
+
 def new_result_processor(self, dialect, coltype):
     if dialect.name == "sqlite":
+
         def process(value):
             if value is None:
                 return None
@@ -69,11 +81,13 @@ def new_result_processor(self, dialect, coltype):
                 return json.loads(value)
             except Exception:
                 return value
+
         return process
     return _orig_result_processor(self, dialect, coltype)
 
-ARRAY.bind_processor = new_bind_processor # type: ignore[method-assign]
-ARRAY.result_processor = new_result_processor # type: ignore[method-assign]
+
+ARRAY.bind_processor = new_bind_processor  # type: ignore[method-assign]
+ARRAY.result_processor = new_result_processor  # type: ignore[method-assign]
 
 # Use in-memory SQLite for unit tests (no Postgres needed)
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
@@ -83,6 +97,7 @@ TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 def event_loop_policy():
     """Use default event loop policy for pytest-asyncio."""
     import asyncio
+
     return asyncio.DefaultEventLoopPolicy()
 
 

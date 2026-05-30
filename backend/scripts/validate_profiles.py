@@ -1,4 +1,5 @@
 """CLI utility to validate EnvForge profile configurations against schemas and logic rules."""
+
 # ruff: noqa: E402
 import os
 import sys
@@ -22,19 +23,29 @@ def validate_logical_consistency(profile: ProfileSeedSchema) -> list[str]:
 
     # 1. CUDA consistency: If cuda_required is True, cuda_versions must not be empty
     if profile.cuda_required and not profile.cuda_versions:
-        errors.append("cuda_required is True, but cuda_versions is empty or not provided.")
+        errors.append(
+            "cuda_required is True, but cuda_versions is empty or not provided."
+        )
 
     # 2. Unique packages: package names must be unique within a profile
     package_names = [pkg.name for pkg in profile.packages]
-    duplicate_packages = {name for name in package_names if package_names.count(name) > 1}
+    duplicate_packages = {
+        name for name in package_names if package_names.count(name) > 1
+    }
     if duplicate_packages:
-        errors.append(f"Duplicate package names found: {sorted(list(duplicate_packages))}.")
+        errors.append(
+            f"Duplicate package names found: {sorted(list(duplicate_packages))}."
+        )
 
     # 3. Unique install orders: install_order values must be unique
     install_orders = [pkg.install_order for pkg in profile.packages]
-    duplicate_orders = {order for order in install_orders if install_orders.count(order) > 1}
+    duplicate_orders = {
+        order for order in install_orders if install_orders.count(order) > 1
+    }
     if duplicate_orders:
-        errors.append(f"Duplicate install_order values found: {sorted(list(duplicate_orders))}.")
+        errors.append(
+            f"Duplicate install_order values found: {sorted(list(duplicate_orders))}."
+        )
 
     # 4. CUDA variant match: package cuda_variant must match one of the profile's cuda_versions
     for pkg in profile.packages:
@@ -82,10 +93,16 @@ def validate_profile_file(file_path: Path) -> tuple[bool, list[str]]:
 
     if not isinstance(data, dict):
         # Top level must be a dict
-        return False, [f"Invalid YAML structure: expected a mapping at the root, got {type(data).__name__}."]
+        return False, [
+            f"Invalid YAML structure: expected a mapping at the root, got {type(data).__name__}."
+        ]
 
     # If the file does not have the 'profiles' key and lacks indicators of a single profile
-    if "profiles" not in data and "os_support" not in data and "python_versions" not in data:
+    if (
+        "profiles" not in data
+        and "os_support" not in data
+        and "python_versions" not in data
+    ):
         return True, ["Not a profile file (skipped)"]
 
     # Determine schema type: list of profiles or single profile
@@ -123,7 +140,9 @@ def validate_profile_file(file_path: Path) -> tuple[bool, list[str]]:
 
 
 @click.command()
-@click.argument("path", type=click.Path(exists=True, file_okay=True, dir_okay=True, path_type=Path))
+@click.argument(
+    "path", type=click.Path(exists=True, file_okay=True, dir_okay=True, path_type=Path)
+)
 def main(path: Path) -> None:
     """Validate EnvForge profile YAML schemas and logical consistency rules."""
     files_to_validate: list[Path] = []
@@ -167,10 +186,18 @@ def main(path: Path) -> None:
                 click.secho(err, fg="yellow")
 
     if failed_files > 0:
-        click.secho(f"\nValidation failed: {failed_files}/{total_files} file(s) failed validation.", fg="red", bold=True)
+        click.secho(
+            f"\nValidation failed: {failed_files}/{total_files} file(s) failed validation.",
+            fg="red",
+            bold=True,
+        )
         sys.exit(1)
     else:
-        click.secho(f"\nValidation succeeded: All {total_files} file(s) passed validation.", fg="green", bold=True)
+        click.secho(
+            f"\nValidation succeeded: All {total_files} file(s) passed validation.",
+            fg="green",
+            bold=True,
+        )
         sys.exit(0)
 
 

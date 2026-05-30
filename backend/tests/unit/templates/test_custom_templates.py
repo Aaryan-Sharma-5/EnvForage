@@ -1,4 +1,5 @@
 """Unit tests to verify custom template directory overrides and ChoiceLoader integration."""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -50,8 +51,7 @@ def test_custom_template_override_precedence(tmp_path):
 
     custom_template = config_dir / "environment.yml.j2"
     custom_template.write_text(
-        "name: OVERRIDDEN_{{ profile.name }}\ncustom_indicator: yes",
-        encoding="utf-8"
+        "name: OVERRIDDEN_{{ profile.name }}\ncustom_indicator: yes", encoding="utf-8"
     )
 
     # 2. Mock get_settings() inside engine.py to return our custom_template_dir
@@ -78,10 +78,7 @@ def test_custom_templates_subject_to_sandbox_hardening(tmp_path):
 
     # Create an unsafe custom template attempting SSTI
     unsafe_template = config_dir / "environment.yml.j2"
-    unsafe_template.write_text(
-        "name: {{ ''.__class__ }}",
-        encoding="utf-8"
-    )
+    unsafe_template.write_text("name: {{ ''.__class__ }}", encoding="utf-8")
 
     mock_settings = MagicMock(spec=Settings)
     mock_settings.custom_template_dir = custom_dir
@@ -93,4 +90,6 @@ def test_custom_templates_subject_to_sandbox_hardening(tmp_path):
         with pytest.raises(SecurityError) as exc_info:
             renderer.render("environment.yml", context)
 
-    assert "access to attribute" in str(exc_info.value) or "is blocked" in str(exc_info.value)
+    assert "access to attribute" in str(exc_info.value) or "is blocked" in str(
+        exc_info.value
+    )

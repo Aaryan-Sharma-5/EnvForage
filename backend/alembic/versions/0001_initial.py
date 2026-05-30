@@ -3,6 +3,7 @@
 Revision ID: 0001
 Revises:Create Date: 2026-05-06
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -32,13 +33,30 @@ def upgrade() -> None:
         sa.Column("status", sa.String(16), nullable=False, server_default="ACTIVE"),
         sa.Column("last_validated", sa.Date),
         sa.Column("metadata", postgresql.JSONB),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True)),
     )
     op.create_index("idx_profiles_slug", "environment_profiles", ["slug"])
-    op.create_index("idx_profiles_tags", "environment_profiles", ["tags"], postgresql_using="gin")
-    op.create_index("idx_profiles_os", "environment_profiles", ["os_support"], postgresql_using="gin")
+    op.create_index(
+        "idx_profiles_tags", "environment_profiles", ["tags"], postgresql_using="gin"
+    )
+    op.create_index(
+        "idx_profiles_os",
+        "environment_profiles",
+        ["os_support"],
+        postgresql_using="gin",
+    )
 
     # ── profile_packages ──────────────────────────────────────────────────────
     op.create_table(
@@ -50,10 +68,19 @@ def upgrade() -> None:
         sa.Column("cuda_variant", sa.String(32)),
         sa.Column("is_optional", sa.Boolean, nullable=False, server_default="false"),
         sa.Column("install_order", sa.Integer, nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(["profile_id"], ["environment_profiles.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["profile_id"], ["environment_profiles.id"], ondelete="CASCADE"
+        ),
     )
-    op.create_index("idx_profile_packages_profile_id", "profile_packages", ["profile_id"])
+    op.create_index(
+        "idx_profile_packages_profile_id", "profile_packages", ["profile_id"]
+    )
 
     # ── cuda_compatibility_matrix ─────────────────────────────────────────────
     op.create_table(
@@ -66,8 +93,18 @@ def upgrade() -> None:
         sa.Column("supported_archs", postgresql.ARRAY(sa.String)),
         sa.Column("notes", sa.Text),
         sa.Column("source_url", sa.Text),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
 
     # ── script_generation_jobs ────────────────────────────────────────────────
@@ -82,7 +119,12 @@ def upgrade() -> None:
         sa.Column("status", sa.String(16), nullable=False, server_default="PENDING"),
         sa.Column("error", sa.Text),
         sa.Column("resolved_env", postgresql.JSONB),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("completed_at", sa.DateTime(timezone=True)),
         sa.ForeignKeyConstraint(["profile_id"], ["environment_profiles.id"]),
     )
@@ -97,8 +139,15 @@ def upgrade() -> None:
         sa.Column("filename", sa.String(128), nullable=False),
         sa.Column("content", sa.Text, nullable=False),
         sa.Column("size_bytes", sa.Integer),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(["job_id"], ["script_generation_jobs.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["job_id"], ["script_generation_jobs.id"], ondelete="CASCADE"
+        ),
     )
     op.create_index("idx_generated_scripts_job_id", "generated_scripts", ["job_id"])
 
@@ -112,7 +161,12 @@ def upgrade() -> None:
         sa.Column("cuda_version", sa.String(16)),
         sa.Column("python_version", sa.String(8)),
         sa.Column("driver_version", sa.String(32)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("idx_diag_os", "diagnostic_reports", ["os_type"])
     op.create_index("idx_diag_cuda", "diagnostic_reports", ["cuda_version"])
@@ -124,7 +178,12 @@ def upgrade() -> None:
         sa.Column("report_id", postgresql.UUID(as_uuid=True)),
         sa.Column("profile_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("overall_status", sa.String(16), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["report_id"], ["diagnostic_reports.id"]),
         sa.ForeignKeyConstraint(["profile_id"], ["environment_profiles.id"]),
     )
@@ -137,8 +196,15 @@ def upgrade() -> None:
         sa.Column("check_name", sa.String(128), nullable=False),
         sa.Column("passed", sa.Boolean, nullable=False),
         sa.Column("detail", sa.Text),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.ForeignKeyConstraint(["result_id"], ["verification_results.id"], ondelete="CASCADE"),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["result_id"], ["verification_results.id"], ondelete="CASCADE"
+        ),
     )
 
     # ── ai_sessions ───────────────────────────────────────────────────────────
@@ -150,7 +216,12 @@ def upgrade() -> None:
         sa.Column("profile_id", postgresql.UUID(as_uuid=True)),
         sa.Column("provider", sa.String(32), nullable=False),
         sa.Column("model", sa.String(64), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
 
     # ── ai_suggestions ────────────────────────────────────────────────────────
@@ -164,7 +235,12 @@ def upgrade() -> None:
         sa.Column("severity", sa.String(16), nullable=False),
         sa.Column("safe_commands", postgresql.ARRAY(sa.String)),
         sa.Column("template_id", sa.String(128)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["session_id"], ["ai_sessions.id"], ondelete="CASCADE"),
     )
 
@@ -179,7 +255,12 @@ def upgrade() -> None:
         sa.Column("provider", sa.String(32)),
         sa.Column("tokens_used", sa.Integer),
         sa.Column("latency_ms", sa.Integer),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["session_id"], ["ai_sessions.id"]),
     )
     op.create_index("idx_audit_session", "ai_audit_log", ["session_id"])

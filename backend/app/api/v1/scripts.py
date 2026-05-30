@@ -3,7 +3,7 @@
 import io
 import zipfile
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import DB
@@ -12,6 +12,7 @@ from app.compatibility.errors import (
     UnknownVersionError,
     UnsupportedOSError,
 )
+from app.middleware.rate_limit import general_rate_limit
 from app.schemas.script import GenerationRequest, GenerationResponse
 from app.services import profile_service, script_service
 
@@ -38,6 +39,7 @@ router = APIRouter()
 async def generate_scripts(
     request: GenerationRequest,
     db: DB,
+    _rate_limit: None = Depends(general_rate_limit),
 ) -> GenerationResponse:
     """
     Generate a set of setup scripts for a given profile and target configuration.
@@ -165,4 +167,3 @@ async def download_scripts(
             "Content-Disposition": f"attachment; filename=envforge_{job_id[:8]}.zip"
         },
     )
-

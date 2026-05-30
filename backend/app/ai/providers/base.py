@@ -1,4 +1,5 @@
 """Abstract base class for LLM providers."""
+
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from typing import TypeVar
@@ -60,6 +61,7 @@ class LLMProvider(ABC):
 
 class LLMProviderError(Exception):
     """Raised when an LLM provider request fails."""
+
     def __init__(self, provider: str, reason: str) -> None:
         self.provider = provider
         self.reason = reason

@@ -1,6 +1,7 @@
 """
 Script generation service — orchestrates Compatibility Engine + Template Engine.
 """
+
 import hashlib
 import json
 import logging
@@ -207,13 +208,15 @@ async def generate_scripts(
     db.add(job)
 
     for rr in render_results:
-        db.add(GeneratedScript(
-            id=uuid.uuid4(),
-            job_id=job.id,
-            filename=rr.filename,
-            content=rr.content,
-            size_bytes=rr.size_bytes,
-        ))
+        db.add(
+            GeneratedScript(
+                id=uuid.uuid4(),
+                job_id=job.id,
+                filename=rr.filename,
+                content=rr.content,
+                size_bytes=rr.size_bytes,
+            )
+        )
 
     await db.flush()  # Get job.id without committing transaction
 

@@ -27,6 +27,7 @@ target_metadata = Base.metadata
 def get_url() -> str:
     """Read DATABASE_URL from env if set, otherwise fall back to alembic.ini."""
     import os
+
     return os.environ.get("DATABASE_URL", config.get_main_option("sqlalchemy.url", ""))
 
 

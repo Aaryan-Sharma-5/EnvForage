@@ -47,20 +47,20 @@ def _redact_validation_errors(
     redacted: list[dict[str, object]] = []
     for error in errors:
         loc = error.get("loc", [])
-        redacted.append({
-            "type": error.get("type"),
-            "loc": [str(item) for item in loc],
-            "msg": error.get("msg"),
-        })
+        redacted.append(
+            {
+                "type": error.get("type"),
+                "loc": [str(item) for item in loc],
+                "msg": error.get("msg"),
+            }
+        )
     return redacted
 
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Register application-wide exception handlers."""
 
-    async def app_exception_handler(
-        request: Request, exc: Exception
-    ) -> JSONResponse:
+    async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         assert isinstance(exc, AppError)
         logger.error("%s: %s", exc.error_code, exc.message)
         return _error_response(

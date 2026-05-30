@@ -1,4 +1,5 @@
 """SQLAlchemy ORM models for script generation jobs."""
+
 import uuid
 from datetime import datetime
 from typing import Any
@@ -16,7 +17,11 @@ class ScriptGenerationJob(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("environment_profiles.id", ondelete="CASCADE"), nullable=False)
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("environment_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     target_os: Mapped[str] = mapped_column(String(16), nullable=False)
     python_version: Mapped[str] = mapped_column(String(8), nullable=False)
     cuda_version: Mapped[str | None] = mapped_column(String(16))
@@ -45,7 +50,11 @@ class GeneratedScript(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    job_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("script_generation_jobs.id", ondelete="CASCADE"), nullable=False)
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("script_generation_jobs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     filename: Mapped[str] = mapped_column(String(128), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     size_bytes: Mapped[int | None] = mapped_column()

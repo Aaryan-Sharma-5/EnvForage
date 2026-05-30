@@ -1,10 +1,12 @@
 """Tests for TroubleshootPromptBuilder."""
+
 import pytest
 
 from app.ai.models import TroubleshootRequest
 from app.ai.prompts.troubleshoot import TroubleshootPromptBuilder
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def builder():
@@ -15,15 +17,39 @@ def builder():
 def sample_diagnostic():
     return {
         "agent_version": "1.0.0",
-        "os": {"name": "Ubuntu 22.04", "version": "22.04", "architecture": "x86_64", "wsl_version": None},
+        "os": {
+            "name": "Ubuntu 22.04",
+            "version": "22.04",
+            "architecture": "x86_64",
+            "wsl_version": None,
+        },
         "cpu": {"brand": "Intel i9-13900K", "cores": 24, "threads": 32},
         "ram": {"total_gb": 64, "available_gb": 48},
-        "gpus": [{"name": "RTX 4090", "vram_gb": 24, "driver_version": "535.129", "index": 0}],
-        "cuda": {"version": "11.8", "toolkit_path": "/usr/local/cuda", "cudnn_version": "8.7.0", "nccl_version": None},
-        "python_installations": [
-            {"version": "3.10.12", "path": "/usr/bin/python3.10", "is_venv": False, "venv_path": None, "pip_version": "22.0"},
+        "gpus": [
+            {"name": "RTX 4090", "vram_gb": 24, "driver_version": "535.129", "index": 0}
         ],
-        "active_python": {"version": "3.10.12", "path": "/usr/bin/python3.10", "is_venv": False, "venv_path": None, "pip_version": "22.0"},
+        "cuda": {
+            "version": "11.8",
+            "toolkit_path": "/usr/local/cuda",
+            "cudnn_version": "8.7.0",
+            "nccl_version": None,
+        },
+        "python_installations": [
+            {
+                "version": "3.10.12",
+                "path": "/usr/bin/python3.10",
+                "is_venv": False,
+                "venv_path": None,
+                "pip_version": "22.0",
+            },
+        ],
+        "active_python": {
+            "version": "3.10.12",
+            "path": "/usr/bin/python3.10",
+            "is_venv": False,
+            "venv_path": None,
+            "pip_version": "22.0",
+        },
     }
 
 
@@ -41,6 +67,7 @@ def sample_request(sample_diagnostic):
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
 
 class TestPromptBuilder:
     def test_build_returns_string(self, builder, sample_request):

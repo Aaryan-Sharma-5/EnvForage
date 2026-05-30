@@ -53,6 +53,11 @@ class ROCMInfo(BaseModel):
     gcn_arch: str | None = None      # e.g. "gfx1030"
 
 
+class DISKInfo(BaseModel):
+    total_gb: float = 0.0
+    available_gb: float = 0.0
+
+
 class PythonInfo(BaseModel):
     version: str
     path: str
@@ -75,6 +80,7 @@ class DiagnosticReport(BaseModel):
     gpus: list[GPUInfo] = Field(default_factory=list)
     cuda: CUDAInfo = Field(default_factory=CUDAInfo)
     rocm: ROCMInfo = Field(default_factory=ROCMInfo)
+    disk: DISKInfo = Field(default_factory=DISKInfo)
     python_installations: list[PythonInfo] = Field(default_factory=list)
     active_python: PythonInfo | None = None
 
@@ -136,6 +142,7 @@ class DiagnosticReport(BaseModel):
                         "ram_gb": self.ram.total_gb,
                         "python": self.active_python.version if self.active_python else None,
                         "cuda": self.cuda.version,
+                        "disk": self.disk.total_gb
                     },
                 }
             ],

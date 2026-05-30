@@ -75,6 +75,23 @@ services:
         uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
       "
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
+        - BACKEND_API_URL=${BACKEND_API_URL:-http://api:8000}
+    container_name: envforge_frontend_prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      api:
+        condition: service_started
+
 volumes:
   postgres_data:
   redis_data:

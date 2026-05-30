@@ -1,4 +1,5 @@
 """ORM model exports."""
+
 from app.models.ai_session import AIAuditLog, AISession, AISuggestion
 from app.models.diagnostic import (
     DiagnosticReport,

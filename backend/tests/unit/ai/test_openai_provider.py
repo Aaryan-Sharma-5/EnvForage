@@ -26,11 +26,15 @@ async def test_openai_stream_rate_limit_short_circuit():
     mock_stream_ctx.__aexit__ = AsyncMock(return_value=None)
 
     with (
-        patch("httpx.AsyncClient.stream", return_value=mock_stream_ctx) as mock_stream_call,
+        patch(
+            "httpx.AsyncClient.stream", return_value=mock_stream_ctx
+        ) as mock_stream_call,
         patch("asyncio.sleep", AsyncMock()) as mock_sleep,
     ):
         generator = provider.stream(
-            system_prompt="Test system", user_message="Test user", response_model=DummyModel
+            system_prompt="Test system",
+            user_message="Test user",
+            response_model=DummyModel,
         )
 
         with pytest.raises(LLMProviderError) as exc_info:
@@ -50,11 +54,16 @@ async def test_openai_stream_network_error_retry_and_exhaustion():
 
     # Simulate a transport layer network drop-out when stream() is called
     with (
-        patch("httpx.AsyncClient.stream", side_effect=httpx.ConnectError("Connection timed out")) as mock_stream_call,
+        patch(
+            "httpx.AsyncClient.stream",
+            side_effect=httpx.ConnectError("Connection timed out"),
+        ) as mock_stream_call,
         patch("asyncio.sleep", AsyncMock()) as mock_sleep,
     ):
         generator = provider.stream(
-            system_prompt="Test system", user_message="Test user", response_model=DummyModel
+            system_prompt="Test system",
+            user_message="Test user",
+            response_model=DummyModel,
         )
 
         with pytest.raises(LLMProviderError) as exc_info:
@@ -62,7 +71,9 @@ async def test_openai_stream_network_error_retry_and_exhaustion():
                 pass
 
         # Verify the trailing exception fallback is reached cleanly
-        assert "OpenAI streaming failed after maximum retry attempts." in str(exc_info.value)
+        assert "OpenAI streaming failed after maximum retry attempts." in str(
+            exc_info.value
+        )
 
         # Verify the loop attempted the stream 3 times and backed off/slept twice
         assert mock_stream_call.call_count == 3

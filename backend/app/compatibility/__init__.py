@@ -1,4 +1,5 @@
 """Compatibility Engine package exports."""
+
 from app.compatibility.errors import (
     IncompatibilityError,
     UnknownVersionError,

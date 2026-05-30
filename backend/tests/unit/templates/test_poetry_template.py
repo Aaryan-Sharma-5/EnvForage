@@ -40,7 +40,7 @@ def test_poetry_template_renders_basic():
     assert "3.10" in result.content
     # Check Poetry TOML format
     assert "[tool.poetry]" in result.content
-    assert '[tool.poetry.dependencies]' in result.content
+    assert "[tool.poetry.dependencies]" in result.content
     assert 'python = "3.10.*"' in result.content
     assert 'numpy = "1.24.0"' in result.content
     assert 'pandas = "2.0.0"' in result.content

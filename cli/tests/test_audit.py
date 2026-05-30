@@ -65,18 +65,14 @@ class TestLockfileSource:
 
     def test_skips_comments_and_blank_lines(self, tmp_path: Path):
         lockfile = tmp_path / "req.txt"
-        lockfile.write_text(
-            "# This is a comment\n\ndjango==4.2.0  # inline comment\n\n"
-        )
+        lockfile.write_text("# This is a comment\n\ndjango==4.2.0  # inline comment\n\n")
         packages = list(LockfileSource(lockfile).packages())
         assert packages == [Package(name="django", version="4.2.0")]
 
     def test_skips_flag_lines(self, tmp_path: Path):
         lockfile = tmp_path / "req.txt"
         lockfile.write_text(
-            "-r requirements-dev.txt\n"
-            "--index-url https://pypi.org/simple\n"
-            "django==4.2.0\n"
+            "-r requirements-dev.txt\n--index-url https://pypi.org/simple\ndjango==4.2.0\n"
         )
         packages = list(LockfileSource(lockfile).packages())
         assert packages == [Package(name="django", version="4.2.0")]
@@ -109,7 +105,7 @@ class TestLockfileSource:
         lockfile.write_bytes(b"django==4.2.0\n\xff\xfe garbage\n")
         with pytest.raises(RuntimeError, match=r"not valid UTF-8"):
             list(LockfileSource(lockfile).packages())
-    
+
     def test_handles_arbitrary_equality(self, tmp_path: Path):
         """PEP 440 === (arbitrary equality) should parse correctly,
         not as == with a leading '=' in the version."""
@@ -157,16 +153,22 @@ class TestDiff:
         assert removed[0].package == "legacy"
 
     def test_classifies_version_changes(self):
-        a = _StubSource("a", [
-            Package("django", "4.2.0"),
-            Package("requests", "2.31.0"),
-            Package("numpy", "1.24.0"),
-        ])
-        b = _StubSource("b", [
-            Package("django", "5.0.0"),
-            Package("requests", "2.32.0"),
-            Package("numpy", "1.24.1"),
-        ])
+        a = _StubSource(
+            "a",
+            [
+                Package("django", "4.2.0"),
+                Package("requests", "2.31.0"),
+                Package("numpy", "1.24.0"),
+            ],
+        )
+        b = _StubSource(
+            "b",
+            [
+                Package("django", "5.0.0"),
+                Package("requests", "2.32.0"),
+                Package("numpy", "1.24.1"),
+            ],
+        )
         result = diff(a, b)
         by_pkg = {d.package: d.severity for d in result.differences}
         assert by_pkg["django"] == "major"
@@ -201,7 +203,8 @@ class TestAuditCommand:
         result = CliRunner().invoke(audit_command, ["/does/not/exist.txt", "local"])
         assert result.exit_code == 2
         assert "could not interpret source" in result.output.lower()
-        
+
+
 class TestLocalEnvironmentErrors:
     @patch("envforge_agent.audit.sources.subprocess.run")
     def test_timeout_raises_runtime_error(self, mock_run):
@@ -224,17 +227,19 @@ class TestLocalEnvironmentErrors:
         )
         with pytest.raises(RuntimeError, match=r"malformed JSON"):
             list(LocalEnvironment().packages())
-            
+
     @patch("envforge_agent.audit.sources.subprocess.run")
     def test_missing_interpreter_raises_runtime_error(self, mock_run):
         mock_run.side_effect = FileNotFoundError("python not found")
         with pytest.raises(RuntimeError, match=r"Could not execute Python interpreter"):
             list(LocalEnvironment(python_executable="/bad/python").packages())
-            
+
+
 class TestJsonFormatter:
     def test_format_json_no_drift(self):
         # Use a synthetic empty result via direct construction
         from envforge_agent.audit.models import AuditResult
+
         result = AuditResult(
             source_a="lockfile:a.txt",
             source_b="lockfile:b.txt",
@@ -294,9 +299,7 @@ class TestSarifFormatter:
         sarif = json.loads(format_sarif(result))
         results = sarif["runs"][0]["results"]
 
-        levels_by_severity = {
-            r["ruleId"].replace("drift-", ""): r["level"] for r in results
-        }
+        levels_by_severity = {r["ruleId"].replace("drift-", ""): r["level"] for r in results}
         assert levels_by_severity["major"] == "error"
         assert levels_by_severity["minor"] == "warning"
         assert levels_by_severity["patch"] == "note"
@@ -331,17 +334,14 @@ class TestAuditCommandOutputFormats:
         b = tmp_path / "b.txt"
         b.write_text("django==5.0.0\n")
 
-        result = CliRunner().invoke(
-            audit_command, [str(a), str(b), "--json", "--sarif"]
-        )
+        result = CliRunner().invoke(audit_command, [str(a), str(b), "--json", "--sarif"])
         assert result.exit_code == 2
         assert "mutually exclusive" in result.output.lower()
-        
+
+
 class TestDriftScore:
     def test_no_drift_score_is_zero(self):
-        result = AuditResult(
-            source_a="a", source_b="b", differences=[], common_count=5
-        )
+        result = AuditResult(source_a="a", source_b="b", differences=[], common_count=5)
         assert result.drift_score == 0
 
     def test_drift_score_weighted_by_severity(self, tmp_path: Path):
@@ -402,19 +402,15 @@ class TestStrictFlag:
 
         result = CliRunner().invoke(audit_command, [str(a), str(b)])
         assert result.exit_code == 0
-        
+
+
 class TestConfigFileSource:
     def test_parses_direct_version_strings(self, tmp_path: Path):
         pyproject = tmp_path / "pyproject.toml"
         pyproject.write_text(
-            '[tool.poetry.dependencies]\n'
-            'python = "^3.11"\n'
-            'requests = "2.31.0"\n'
-            'django = "4.2.0"\n'
+            '[tool.poetry.dependencies]\npython = "^3.11"\nrequests = "2.31.0"\ndjango = "4.2.0"\n'
         )
-        packages = sorted(
-            ConfigFileSource(pyproject).packages(), key=lambda p: p.name
-        )
+        packages = sorted(ConfigFileSource(pyproject).packages(), key=lambda p: p.name)
         assert packages == [
             Package(name="django", version="4.2.0"),
             Package(name="requests", version="2.31.0"),
@@ -422,14 +418,8 @@ class TestConfigFileSource:
 
     def test_strips_caret_and_tilde_operators(self, tmp_path: Path):
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            '[tool.poetry.dependencies]\n'
-            'requests = "^2.31"\n'
-            'django = "~4.2"\n'
-        )
-        packages = sorted(
-            ConfigFileSource(pyproject).packages(), key=lambda p: p.name
-        )
+        pyproject.write_text('[tool.poetry.dependencies]\nrequests = "^2.31"\ndjango = "~4.2"\n')
+        packages = sorted(ConfigFileSource(pyproject).packages(), key=lambda p: p.name)
         assert packages == [
             Package(name="django", version="4.2"),
             Package(name="requests", version="2.31"),
@@ -438,13 +428,9 @@ class TestConfigFileSource:
     def test_strips_equality_and_comparison_operators(self, tmp_path: Path):
         pyproject = tmp_path / "pyproject.toml"
         pyproject.write_text(
-            '[tool.poetry.dependencies]\n'
-            'pkg-a = "==1.0.0"\n'
-            'pkg-b = ">=2.0,<3.0"\n'
+            '[tool.poetry.dependencies]\npkg-a = "==1.0.0"\npkg-b = ">=2.0,<3.0"\n'
         )
-        packages = sorted(
-            ConfigFileSource(pyproject).packages(), key=lambda p: p.name
-        )
+        packages = sorted(ConfigFileSource(pyproject).packages(), key=lambda p: p.name)
         assert packages == [
             Package(name="pkg-a", version="1.0.0"),
             Package(name="pkg-b", version="2.0"),  # first part of compound
@@ -453,8 +439,7 @@ class TestConfigFileSource:
     def test_parses_table_format_with_version(self, tmp_path: Path):
         pyproject = tmp_path / "pyproject.toml"
         pyproject.write_text(
-            '[tool.poetry.dependencies]\n'
-            'requests = { version = "2.31.0", extras = ["security"] }\n'
+            '[tool.poetry.dependencies]\nrequests = { version = "2.31.0", extras = ["security"] }\n'
         )
         packages = list(ConfigFileSource(pyproject).packages())
         assert packages == [Package(name="requests", version="2.31.0")]
@@ -462,7 +447,7 @@ class TestConfigFileSource:
     def test_skips_git_and_path_dependencies(self, tmp_path: Path):
         pyproject = tmp_path / "pyproject.toml"
         pyproject.write_text(
-            '[tool.poetry.dependencies]\n'
+            "[tool.poetry.dependencies]\n"
             'mylib = { git = "https://github.com/example/mylib.git" }\n'
             'localpkg = { path = "../localpkg" }\n'
             'requests = "2.31.0"\n'
@@ -472,11 +457,7 @@ class TestConfigFileSource:
 
     def test_skips_python_key(self, tmp_path: Path):
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            '[tool.poetry.dependencies]\n'
-            'python = "^3.11"\n'
-            'requests = "2.31.0"\n'
-        )
+        pyproject.write_text('[tool.poetry.dependencies]\npython = "^3.11"\nrequests = "2.31.0"\n')
         names = [p.name for p in ConfigFileSource(pyproject).packages()]
         assert "python" not in names
 
@@ -495,20 +476,53 @@ class TestConfigFileSource:
         with pytest.raises(RuntimeError, match=r"not found"):
             list(ConfigFileSource("/does/not/exist.toml").packages())
 
+    def test_parses_pep_621_dependencies(self, tmp_path: Path):
+        pyproject = tmp_path / "pyproject.toml"
+        pyproject.write_text(
+            "[project]\n"
+            "dependencies = [\n"
+            '    "requests>=2.31.0",\n'
+            "    \"django==4.2rc1; python_version < '3.10'\",\n"
+            '    "numpy~=1.24.0rc3",\n'
+            '    "pandas<=2.0.0",\n'
+            '    "pkg!=1.2.0"\n'
+            "]\n"
+        )
+        packages = sorted(ConfigFileSource(pyproject).packages(), key=lambda p: p.name)
+        assert packages == [
+            Package(name="django", version="4.2rc1"),
+            Package(name="numpy", version="1.24.0rc3"),
+            Package(name="pandas", version="2.0.0"),
+            Package(name="pkg", version="1.2.0"),
+            Package(name="requests", version="2.31.0"),
+        ]
+
+    def test_pep_621_skips_python_key(self, tmp_path: Path):
+        pyproject = tmp_path / "pyproject.toml"
+        pyproject.write_text(
+            '[project]\ndependencies = [\n    "python>=3.11",\n    "requests>=2.31.0"\n]\n'
+        )
+        names = [p.name for p in ConfigFileSource(pyproject).packages()]
+        assert "python" not in names
+        assert names == ["requests"]
+
+    def test_pep_621_skips_no_version_specifier(self, tmp_path: Path):
+        pyproject = tmp_path / "pyproject.toml"
+        pyproject.write_text(
+            '[project]\ndependencies = [\n    "requests",\n    "django>=4.2.0"\n]\n'
+        )
+        packages = list(ConfigFileSource(pyproject).packages())
+        assert packages == [Package(name="django", version="4.2.0")]
+
 
 class TestAuditCommandWithConfigFile:
     def test_audit_pyproject_vs_lockfile(self, tmp_path: Path):
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text(
-            '[tool.poetry.dependencies]\n'
-            'requests = "2.31.0"\n'
-        )
+        pyproject.write_text('[tool.poetry.dependencies]\nrequests = "2.31.0"\n')
         lockfile = tmp_path / "requirements.txt"
         lockfile.write_text("requests==2.32.0\n")
 
-        result = CliRunner().invoke(
-            audit_command, [str(pyproject), str(lockfile)]
-        )
+        result = CliRunner().invoke(audit_command, [str(pyproject), str(lockfile)])
         assert result.exit_code == 0
         normalized = result.output.lower()
         assert "requests" in normalized
@@ -523,7 +537,7 @@ class TestAuditCommandWithConfigFile:
         result = CliRunner().invoke(audit_command, [str(a), str(b)])
         assert result.exit_code == 0
         assert "requests" in result.output.lower()
-        
+
     def test_uppercase_toml_extension_routes_to_config_source(self, tmp_path: Path):
         """Path suffix matching is case-insensitive — a .TOML file should
         be parsed as pyproject, not misrouted to LockfileSource."""

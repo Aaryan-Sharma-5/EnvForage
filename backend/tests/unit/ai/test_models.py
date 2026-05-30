@@ -1,4 +1,5 @@
 """Tests for AI Pydantic models."""
+
 import pytest
 from pydantic import ValidationError
 
@@ -68,7 +69,7 @@ class TestSuggestedFix:
             )
 
     def test_default_safe_commands(self):
-        fix = SuggestedFix(step=1, title="T", description="D", severity="INFO")
+        fix = SuggestedFix(step=1, title="Test", description="D", severity="INFO")
         assert fix.safe_commands == []
         assert fix.repair_template_id is None
 
@@ -88,15 +89,19 @@ class TestTroubleshootResponse:
     def test_confidence_bounds(self):
         with pytest.raises(ValidationError):
             TroubleshootResponse(
-                session_id="x", root_cause="y",
-                suggested_fixes=[], confidence=1.5,
+                session_id="x",
+                root_cause="y",
+                suggested_fixes=[],
+                confidence=1.5,
             )
 
     def test_confidence_lower_bound(self):
         with pytest.raises(ValidationError):
             TroubleshootResponse(
-                session_id="x", root_cause="y",
-                suggested_fixes=[], confidence=-0.1,
+                session_id="x",
+                root_cause="y",
+                suggested_fixes=[],
+                confidence=-0.1,
             )
 
 
@@ -108,7 +113,130 @@ class TestLLMResponseMeta:
 
     def test_with_tokens(self):
         meta = LLMResponseMeta(
-            provider="openrouter", model="gpt-4o",
-            prompt_tokens=100, completion_tokens=50, total_tokens=150,
+            provider="openrouter",
+            model="gpt-4o",
+            prompt_tokens=100,
+            completion_tokens=50,
+            total_tokens=150,
         )
         assert meta.total_tokens == 150
+
+
+class TestFixConfidenceLevel:
+    def test_high_confidence_valid(self):
+        fix = SuggestedFix(
+            step=1,
+            title="Upgrade CUDA",
+            description="CUDA mismatch.",
+            severity="CRITICAL",
+            safe_commands=["nvcc --version"],
+            confidence_level="high",
+            confidence_score=0.90,
+            is_matrix_backed=True,
+            uncertainty_reason=None,
+        )
+        assert fix.confidence_level.value == "high"
+        assert fix.is_matrix_backed is True
+
+    def test_medium_requires_uncertainty_reason(self):
+        with pytest.raises(ValidationError, match="uncertainty_reason is required"):
+            SuggestedFix(
+                step=1,
+                title="Check driver",
+                description="Driver may be outdated.",
+                severity="WARNING",
+                confidence_level="medium",
+                confidence_score=0.60,
+                is_matrix_backed=False,
+                uncertainty_reason=None,
+            )
+
+    def test_low_requires_uncertainty_reason(self):
+        with pytest.raises(ValidationError, match="uncertainty_reason is required"):
+            SuggestedFix(
+                step=1,
+                title="Rebuild Python",
+                description="Edge case fix.",
+                severity="INFO",
+                confidence_level="low",
+                confidence_score=0.25,
+                is_matrix_backed=False,
+                uncertainty_reason="",
+            )
+
+    def test_medium_with_reason_valid(self):
+        fix = SuggestedFix(
+            step=1,
+            title="Check driver",
+            description="Driver may be outdated.",
+            severity="WARNING",
+            confidence_level="medium",
+            confidence_score=0.60,
+            is_matrix_backed=False,
+            uncertainty_reason="Exact GPU model not in diagnostic report.",
+        )
+        assert fix.confidence_level.value == "medium"
+
+    def test_low_with_reason_and_fallback_valid(self):
+        fix = SuggestedFix(
+            step=1,
+            title="Try WSL2",
+            description="May be more stable.",
+            severity="INFO",
+            confidence_level="low",
+            confidence_score=0.25,
+            is_matrix_backed=False,
+            uncertainty_reason="No direct evidence in report.",
+            fallback_recommendation="Contact support team.",
+        )
+        assert fix.confidence_level.value == "low"
+
+    def test_matrix_backed_true_requires_high(self):
+        with pytest.raises(ValidationError, match="requires confidence_level='high'"):
+            SuggestedFix(
+                step=1,
+                title="Fix",
+                description="Fix.",
+                severity="WARNING",
+                confidence_level="medium",
+                confidence_score=0.60,
+                is_matrix_backed=True,
+                uncertainty_reason="some reason",
+            )
+
+    def test_matrix_backed_false_with_high_valid(self):
+        fix = SuggestedFix(
+            step=1,
+            title="Upgrade CUDA",
+            description="CUDA mismatch.",
+            severity="CRITICAL",
+            confidence_level="high",
+            confidence_score=0.80,
+            is_matrix_backed=False,
+        )
+        assert fix.is_matrix_backed is False
+
+    def test_confidence_score_below_zero_rejected(self):
+        with pytest.raises(ValidationError):
+            SuggestedFix(
+                step=1,
+                title="Fix",
+                description="Fix.",
+                severity="INFO",
+                confidence_level="low",
+                confidence_score=-0.01,
+                is_matrix_backed=False,
+                uncertainty_reason="No data.",
+            )
+
+    def test_confidence_score_above_one_rejected(self):
+        with pytest.raises(ValidationError):
+            SuggestedFix(
+                step=1,
+                title="Fix",
+                description="Fix.",
+                severity="INFO",
+                confidence_level="high",
+                confidence_score=1.01,
+                is_matrix_backed=False,
+            )

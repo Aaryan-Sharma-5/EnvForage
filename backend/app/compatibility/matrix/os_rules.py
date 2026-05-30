@@ -4,6 +4,7 @@ OS-specific constraint rules for script generation.
 These rules encode platform-level requirements that affect what can be
 generated, not package version compatibility.
 """
+
 from typing import Literal
 
 OSTarget = Literal["LINUX", "WSL", "WIN"]
@@ -12,9 +13,27 @@ OSTarget = Literal["LINUX", "WSL", "WIN"]
 
 # Map OS target to the valid script formats it supports
 OS_SCRIPT_FORMATS: dict[str, list[str]] = {
-    "LINUX": ["setup.sh", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json"],
-    "WSL":   ["setup.sh", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json"],
-    "WIN": ["setup.ps1", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json"],
+    "LINUX": [
+        "setup.sh",
+        "requirements.txt",
+        "Dockerfile",
+        "docker-compose.yml",
+        "devcontainer.json",
+    ],
+    "WSL": [
+        "setup.sh",
+        "requirements.txt",
+        "Dockerfile",
+        "docker-compose.yml",
+        "devcontainer.json",
+    ],
+    "WIN": [
+        "setup.ps1",
+        "requirements.txt",
+        "Dockerfile",
+        "docker-compose.yml",
+        "devcontainer.json",
+    ],
 }
 
 # ── CUDA / GPU rules ──────────────────────────────────────────────────────────

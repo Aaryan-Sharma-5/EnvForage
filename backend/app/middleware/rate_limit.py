@@ -7,6 +7,7 @@ Implements a sliding-window rate limiter with two backends:
 
 Design:
     - Rate limits are per-client-IP
+    - X-Forwarded-For is only trusted when the direct peer is a known private proxy
     - AI endpoints get stricter limits than general API endpoints
     - Returns standard HTTP 429 with Retry-After header
     - Configurable via Settings (rate_limit_ai_rpm, rate_limit_general_rpm)
@@ -23,6 +24,8 @@ Usage::
     ):
         ...
 """
+
+import ipaddress
 import logging
 import time
 from abc import ABC, abstractmethod
@@ -33,16 +36,31 @@ from fastapi import HTTPException, Request
 
 from app.config import get_settings
 
+# Private and loopback CIDRs that may legitimately set X-Forwarded-For.
+# Only peers whose address falls within these ranges are considered trusted
+# proxies; all other peers must be rate-limited by their direct IP.
+_TRUSTED_PROXY_CIDRS: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...] = (
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+)
+
 logger = logging.getLogger(__name__)
 
 
 # ── Backend ABC ───────────────────────────────────────────────────────────────
 
+
 class RateLimitBackend(ABC):
     """Abstract rate limit storage backend."""
 
     @abstractmethod
-    async def is_allowed(self, key: str, max_requests: int, window_seconds: int) -> tuple[bool, dict[str, Any]]:
+    async def is_allowed(
+        self, key: str, max_requests: int, window_seconds: int
+    ) -> tuple[bool, dict[str, Any]]:
         """
         Check if a request is allowed under the rate limit.
 
@@ -64,6 +82,7 @@ class RateLimitBackend(ABC):
 
 # ── In-memory backend (development / single-worker) ───────────────────────────
 
+
 class InMemoryBackend(RateLimitBackend):
     """
     Sliding-window rate limiter using in-memory storage.
@@ -77,7 +96,9 @@ class InMemoryBackend(RateLimitBackend):
         self._last_cleanup = time.monotonic()
         self._cleanup_interval = 60.0  # seconds
 
-    async def is_allowed(self, key: str, max_requests: int, window_seconds: int) -> tuple[bool, dict[str, Any]]:
+    async def is_allowed(
+        self, key: str, max_requests: int, window_seconds: int
+    ) -> tuple[bool, dict[str, Any]]:
         now = time.monotonic()
 
         if now - self._last_cleanup > self._cleanup_interval:
@@ -111,7 +132,8 @@ class InMemoryBackend(RateLimitBackend):
     async def cleanup(self) -> None:
         now = time.monotonic()
         empty_keys = [
-            key for key, timestamps in self._requests.items()
+            key
+            for key, timestamps in self._requests.items()
             if not timestamps or max(timestamps) < now - 300
         ]
         for key in empty_keys:
@@ -121,6 +143,7 @@ class InMemoryBackend(RateLimitBackend):
 
 
 # ── Redis backend (production / multi-worker) ─────────────────────────────────
+
 
 class RedisBackend(RateLimitBackend):
     """
@@ -143,8 +166,11 @@ class RedisBackend(RateLimitBackend):
             ) from exc
         self._client = aioredis.from_url(redis_url, decode_responses=True)
 
-    async def is_allowed(self, key: str, max_requests: int, window_seconds: int) -> tuple[bool, dict[str, Any]]:
+    async def is_allowed(
+        self, key: str, max_requests: int, window_seconds: int
+    ) -> tuple[bool, dict[str, Any]]:
         import uuid
+
         now = time.time()
         window_start = now - window_seconds
 
@@ -168,9 +194,9 @@ class RedisBackend(RateLimitBackend):
             # Find when the oldest request in the window expires
             oldest = await self._client.zrange(key, 0, 0, withscores=True)
             if oldest:
-                retry_after = int(oldest[0][1] + window_seconds - now) + 1
+                retry_after = int(float(oldest[0][1]) + window_seconds - now) + 1
             else:
-                retry_after = window_seconds
+                retry_after = int(window_seconds)
             return False, {
                 "remaining": 0,
                 "limit": max_requests,
@@ -182,7 +208,7 @@ class RedisBackend(RateLimitBackend):
         return True, {
             "remaining": remaining,
             "limit": max_requests,
-            "reset": window_seconds,
+            "reset": int(window_seconds),
             "window": window_seconds,
         }
 
@@ -192,6 +218,7 @@ class RedisBackend(RateLimitBackend):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _mask_redis_url(url: str) -> str:
     """
@@ -214,6 +241,7 @@ def _mask_redis_url(url: str) -> str:
 
 # ── Backend factory ───────────────────────────────────────────────────────────
 
+
 def _make_backend() -> RateLimitBackend:
     """
     Return a RedisBackend if REDIS_URL is configured, else InMemoryBackend.
@@ -221,7 +249,9 @@ def _make_backend() -> RateLimitBackend:
     """
     settings = get_settings()
     if settings.redis_url:
-        logger.info("Rate limiter using Redis backend: %s", _mask_redis_url(settings.redis_url))
+        logger.info(
+            "Rate limiter using Redis backend: %s", _mask_redis_url(settings.redis_url)
+        )
         return RedisBackend(settings.redis_url)
     logger.info("Rate limiter using in-memory backend (single-instance only)")
     return InMemoryBackend()
@@ -229,15 +259,9 @@ def _make_backend() -> RateLimitBackend:
 
 _backend = _make_backend()
 
-settings = get_settings()
-
-if settings.redis_url:
-    _backend = RedisBackend(settings.redis_url)
-else:
-    _backend = InMemoryBackend()
-
 
 # ── Rate Limiter ──────────────────────────────────────────────────────────────
+
 
 class RateLimiter:
     """
@@ -268,13 +292,18 @@ class RateLimiter:
         key = f"rate_limit:{request.url.path}:{client_ip}"
 
         allowed, info = await self.backend.is_allowed(
-            key, self.max_requests, self.window_seconds,
+            key,
+            self.max_requests,
+            self.window_seconds,
         )
 
         if not allowed:
             logger.warning(
                 "Rate limit exceeded: %s on %s (limit: %d/%ds)",
-                client_ip, request.url.path, self.max_requests, self.window_seconds,
+                client_ip,
+                request.url.path,
+                self.max_requests,
+                self.window_seconds,
             )
             raise HTTPException(
                 status_code=429,
@@ -290,11 +319,18 @@ class RateLimiter:
             )
 
     def _get_client_ip(self, request: Request) -> str:
-        """Extract client IP, respecting X-Forwarded-For behind proxies."""
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return request.client.host if request.client else "unknown"
+        """Extract client IP, trusting X-Forwarded-For only from known proxy peers."""
+        peer = request.client.host if request.client else None
+        if peer:
+            try:
+                peer_addr = ipaddress.ip_address(peer)
+                if any(peer_addr in cidr for cidr in _TRUSTED_PROXY_CIDRS):
+                    forwarded = request.headers.get("x-forwarded-for")
+                    if forwarded:
+                        return forwarded.split(",")[0].strip()
+            except ValueError:
+                pass
+        return peer or "unknown"
 
 
 # ── Pre-configured limiters ───────────────────────────────────────────────────

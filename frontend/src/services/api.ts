@@ -11,7 +11,12 @@ import {
   RepairTemplateListResponse,
 } from '../types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const getApiBaseUrl = () => {
+  const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  return url.endsWith('/api/v1') ? url : `${url}/api/v1`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const api = {
   getProfiles: async (os?: string, cuda?: boolean, tags?: string[]): Promise<Profile[]> => {
@@ -82,22 +87,34 @@ export const api = {
     }
 
     const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder('utf-8');
     let fullContent = '';
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-      
+      const chunk = decoder.decode(value, { stream: !done });
+      buffer += chunk;
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const token = line.slice(6);
           fullContent += token;
           onToken(token);
         }
+      }
+
+      if (done) {
+        if (buffer.startsWith('data: ')) {
+          const token = buffer.slice(6);
+          fullContent += token;
+          onToken(token);
+        }
+        break;
       }
     }
 
