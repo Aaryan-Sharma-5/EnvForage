@@ -1,23 +1,17 @@
 "use client";
 
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { Variants, motion, useScroll, useTransform } from "framer-motion";
 import {
 	CheckCircle2,
 	Package,
 	Search,
 	Sparkles,
-	Terminal,
 	User,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
-	const { scrollYProgress, scrollY } = useScroll();
-	const scaleX = useSpring(scrollYProgress, {
-		stiffness: 100,
-		damping: 30,
-		restDelta: 0.001,
-	});
+	const { scrollY } = useScroll();
 
 	const heroY = useTransform(scrollY, [0, 1000], [0, 800]);
 
@@ -31,7 +25,7 @@ export default function HomePage() {
 		show: {
 			opacity: 1,
 			y: 0,
-			transition: { type: "spring", stiffness: 300, damping: 24 },
+			transition: { type: "spring" as const, stiffness: 300, damping: 24 },
 		},
 	};
 
@@ -74,49 +68,8 @@ export default function HomePage() {
 		},
 	];
 
-      {/* Hero Section */}
-      <motion.section
-        style={{
-          y: heroY,
-          position: "relative",
-          minHeight: "calc(100vh - 80px)",
-          display: "flex",
-          alignItems: "center",
-          zIndex: 1,
-          padding: "4rem 0",
-          background: "var(--bg-primary)"
-        }}
-      >
-        <div className="container" style={{ maxWidth: "1200px" }}>
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <h1
-              className="hero-title"
-              style={{
-                fontSize: "clamp(4rem, 8vw, 7.5rem)", // Overridden by hero-title on mobile
-                fontWeight: 900,
-                lineHeight: 1.05,
-                letterSpacing: "-0.04em",
-                color: "var(--text-primary)",
-                marginBottom: "2rem",
-              }}
-            >
-              End AI <br />
-              <span style={{ position: "relative", display: "inline-block" }}>
-                dependency hell.
-                <span 
-                  style={{ 
-                    position: "absolute", 
-                    bottom: "10%", 
-                    left: "-2%", 
-                    right: "-2%", 
-                    height: "40%", 
-                    background: "var(--brand-secondary)", 
-                    zIndex: -1 
-                  }}
-                />
-              </span>
-            </h1>
-
+	return (
+		<main className="flex min-h-screen flex-col">
 			{/* Hero Section */}
 			<motion.section
 				style={{
@@ -150,15 +103,8 @@ export default function HomePage() {
 					$ pip install envforge-agent
 				</div>
 
-				<div
-					className="container"
-					style={{ maxWidth: "1200px", position: "relative", zIndex: 2 }}
-				>
-					<motion.div
-						initial={{ opacity: 0, y: 30 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8 }}
-					>
+				<div className="container" style={{ maxWidth: "1200px", position: "relative", zIndex: 2 }}>
+					<motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
 						<h1
 							style={{
 								fontSize: "clamp(4rem, 8vw, 7.5rem)",
@@ -181,6 +127,7 @@ export default function HomePage() {
 										right: "-2%",
 										height: "40%",
 										zIndex: -1,
+										background: "var(--brand-secondary)",
 									}}
 								/>
 							</span>
@@ -213,58 +160,23 @@ export default function HomePage() {
 							integrated LLM — so your stack just works on the first try.
 						</div>
 
-            <div className="flex-col-mobile" style={{ display: "flex", gap: "2.5rem", borderTop: "1px solid var(--border-strong)", paddingTop: "2.5rem" }}>
-              <div>
-                <h3 style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.25rem", letterSpacing: "-0.03em" }}>18k+</h3>
-                <p style={{ fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-secondary)", fontWeight: 600 }}>Known-good builds</p>
-              </div>
-              <div>
-                <h3 style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.25rem", letterSpacing: "-0.03em" }}>100%</h3>
-                <p style={{ fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-secondary)", fontWeight: 600 }}>Reproducible</p>
-              </div>
-              <div>
-                <h3 style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.25rem", letterSpacing: "-0.03em" }}>6 hrs</h3>
-                <p style={{ fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-secondary)", fontWeight: 600 }}>Saved per setup</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </motion.section>
-
-      {/* OVERLAPPING CONTENT LAYER */}
-      <div 
-        style={{ 
-          position: "relative", 
-          zIndex: 10, 
-          background: "var(--bg-primary)",
-          boxShadow: "0 -20px 50px rgba(0,0,0,0.05)",
-        }}
-      >
-        {/* Terminal & Feature Section */}
-        <section className="p-mobile-md" style={{ paddingTop: '8rem', paddingBottom: '6rem' }}>
-          <div className="container">
-            <div className="stack-on-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 450px), 1fr))", gap: "4rem", alignItems: "center" }}>
-              <motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-                <h2 style={{ fontSize: "3.5rem", fontWeight: 800, lineHeight: 1.1, color: "var(--text-primary)", marginBottom: "1.5rem" }}>
-                  One Command.<br/>Zero Headaches.
-                </h2>
-                <p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", marginBottom: "3rem", lineHeight: 1.6 }}>
-                  EnvForage analyzes your hardware, validates compatibility, and generates precise setup scripts. No more trial and error. No more broken environments.
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                  {[
-                    "Hardware-aware compatibility validation",
-                    "Deterministic environment generation",
-                    "GPU driver auto-configuration",
-                    "One-click setup scripts"
-                  ].map((item, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "1rem", fontSize: "1.125rem", color: "var(--text-secondary)" }}>
-                      <CheckCircle2 color="var(--brand-secondary)" size={24} />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
+						<div className="flex-col-mobile" style={{ display: "flex", gap: "2.5rem", borderTop: "1px solid var(--border-strong)", paddingTop: "2.5rem" }}>
+							<div>
+								<h3 style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.25rem", letterSpacing: "-0.03em" }}>18k+</h3>
+								<p style={{ fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-secondary)", fontWeight: 600 }}>Known-good builds</p>
+							</div>
+							<div>
+								<h3 style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.25rem", letterSpacing: "-0.03em" }}>100%</h3>
+								<p style={{ fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-secondary)", fontWeight: 600 }}>Reproducible</p>
+							</div>
+							<div>
+								<h3 style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.25rem", letterSpacing: "-0.03em" }}>6 hrs</h3>
+								<p style={{ fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-secondary)", fontWeight: 600 }}>Saved per setup</p>
+							</div>
+						</div>
+					</motion.div>
+				</div>
+			</motion.section>
 
 			{/* OVERLAPPING CONTENT LAYER */}
 			<div
@@ -272,238 +184,123 @@ export default function HomePage() {
 					position: "relative",
 					zIndex: 10,
 					backgroundColor: "var(--bg-core)",
-					backgroundImage:
-						"radial-gradient(var(--border-subtle) 1px, transparent 1px)",
+					backgroundImage: "radial-gradient(var(--border-subtle) 1px, transparent 1px)",
 					backgroundSize: "6px 6px",
 					boxShadow: "0 -20px 50px rgba(0,0,0,0.05)",
 				}}
 			>
 				{/* Terminal & Feature Section */}
-				<section style={{ paddingTop: "8rem", paddingBottom: "6rem" }}>
+				<section className="p-mobile-md" style={{ paddingTop: '8rem', paddingBottom: '6rem' }}>
 					<div className="container">
-						<div
-							style={{
-								display: "grid",
-								gridTemplateColumns: "repeat(auto-fit, minmax(450px, 1fr))",
-								gap: "4rem",
-								alignItems: "center",
-							}}
-						>
-							<motion.div
-								initial={{ opacity: 0, x: -40 }}
-								whileInView={{ opacity: 1, x: 0 }}
-								viewport={{ once: true }}
-							>
-								<h2
-									style={{
-										fontSize: "3.5rem",
-										fontWeight: 800,
-										lineHeight: 1.1,
-										color: "var(--text-primary)",
-										marginBottom: "1.5rem",
-									}}
-								>
-									One Command.
-									<br />
-									Zero Headaches.
+						<div className="stack-on-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 450px), 1fr))", gap: "4rem", alignItems: "center" }}>
+							<motion.div initial={{ opacity: 0, x: -40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+								<h2 style={{ fontSize: "3.5rem", fontWeight: 800, lineHeight: 1.1, color: "var(--text-primary)", marginBottom: "1.5rem" }}>
+									One Command.<br/>Zero Headaches.
 								</h2>
-								<p
-									style={{
-										fontSize: "1.25rem",
-										color: "var(--text-secondary)",
-										marginBottom: "3rem",
-										lineHeight: 1.6,
-									}}
-								>
-									EnvForage analyzes your hardware, validates compatibility, and
-									generates precise setup scripts. No more trial and error. No
-									more broken environments.
+								<p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", marginBottom: "3rem", lineHeight: 1.6 }}>
+									EnvForage analyzes your hardware, validates compatibility, and generates precise setup scripts. No more trial and error. No more broken environments.
 								</p>
-								<div
-									style={{
-										display: "flex",
-										flexDirection: "column",
-										gap: "1.5rem",
-									}}
-								>
+								<div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 									{[
 										"Hardware-aware compatibility validation",
 										"Deterministic environment generation",
 										"GPU driver auto-configuration",
-										"One-click setup scripts",
+										"One-click setup scripts"
 									].map((item, i) => (
-										<div
-											key={i}
-											style={{
-												display: "flex",
-												alignItems: "center",
-												gap: "1rem",
-												fontSize: "1.125rem",
-												color: "var(--text-secondary)",
-											}}
-										>
+										<div key={i} style={{ display: "flex", alignItems: "center", gap: "1rem", fontSize: "1.125rem", color: "var(--text-secondary)" }}>
 											<CheckCircle2 color="var(--brand-secondary)" size={24} />
 											{item}
 										</div>
 									))}
 								</div>
 							</motion.div>
+						</div>
+					</div>
+				</section>
 
-        {/* Powerful Features Grid */}
-        <section className="p-mobile-md" style={{ paddingTop: '6rem', paddingBottom: '8rem', borderTop: "1px solid var(--border-subtle)" }}>
-          <div className="container">
-            <h2 style={{ fontSize: "3rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "1rem" }}>
-              Powerful Features for AI Developers
-            </h2>
-            <p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", marginBottom: "4rem" }}>
-              Everything you need to eliminate dependency hell and focus on building AI.
-            </p>
+				{/* Powerful Features Grid */}
+				<section className="p-mobile-md" style={{ paddingTop: '6rem', paddingBottom: '8rem', borderTop: "1px solid var(--border-subtle)" }}>
+					<div className="container">
+						<h2 style={{ fontSize: "3rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "1rem" }}>
+							Powerful Features for AI Developers
+						</h2>
+						<p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", marginBottom: "4rem" }}>
+							Everything you need to eliminate dependency hell and focus on building AI.
+						</p>
 
-            <motion.div 
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-100px" }}
-              className="stack-on-mobile"
-              style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))", gap: "4rem 2rem" }}
-            >
-              {featureCards.map((feat, i) => {
-                const Icon = feat.icon;
-                return (
-                  <motion.div key={i} variants={itemVariants}>
-                    <Icon size={32} color="var(--text-primary)" style={{ marginBottom: "1.5rem" }} />
-                    <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1rem" }}>{feat.title}</h3>
-                    <p style={{ fontSize: "1.125rem", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "1.5rem" }}>{feat.description}</p>
-                    <ul style={{ listStyleType: "none", padding: 0 }}>
-                      {feat.list.map((item, j) => (
-                        <li key={j} style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>
-                          <span style={{ color: "var(--brand-secondary)", fontSize: "1.5rem", lineHeight: 0 }}>•</span> {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.div>
-                )
-              })}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Quotes Section */}
-        <section className="p-mobile-md" style={{ background: "var(--bg-tertiary)", padding: "8rem 0" }}>
-          <div className="container">
-            <div className="stack-on-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))", gap: "4rem" }}>
-              <div style={{ color: "var(--text-inverse)" }}>
-                <p style={{ fontSize: "2.5rem", fontWeight: 600, fontStyle: "italic", lineHeight: 1.3, marginBottom: "2rem", fontFamily: "Georgia, serif" }}>
-                  "Dependency hell is not a rite of passage. It's a waste of time."
-                </p>
-                <p style={{ color: "var(--text-muted)", fontSize: "1.125rem" }}>— The EnvForage Team</p>
-              </div>
-              <div style={{ color: "var(--text-inverse)" }}>
-                <p style={{ fontSize: "2.5rem", fontWeight: 600, fontStyle: "italic", lineHeight: 1.3, marginBottom: "2rem", fontFamily: "Georgia, serif" }}>
-                  "Your GPU should accelerate your research, not your frustration."
-                </p>
-                <p style={{ color: "var(--text-muted)", fontSize: "1.125rem" }}>— EnvForage Philosophy</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Bottom CTA */}
-        <section className="p-mobile-md text-center-mobile" style={{ padding: "8rem 0", textAlign: "center" }}>
-          <div className="container">
-            <h2 style={{ fontSize: "3.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "1.5rem" }}>Download EnvForage</h2>
-            <p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", marginBottom: "3rem" }}>Available for all major platforms. Start eliminating dependency hell today.</p>
-            <Link
-              href="/install"
-              style={{
-                display: "inline-block",
-                padding: "1.25rem 3rem",
-                borderRadius: "8px",
-                background: "var(--brand-primary)",
-                color: "var(--text-inverse)",
-                fontWeight: 600,
-                fontSize: "1.125rem",
-                textDecoration: "none",
-                transition: "all 0.2s ease",
-              }}
-            >
-              Get Started
-            </Link>
-          </div>
-        </section>
-
-						<motion.div
+						<motion.div 
 							variants={containerVariants}
 							initial="hidden"
 							whileInView="show"
 							viewport={{ once: true, margin: "-100px" }}
-							style={{
-								display: "grid",
-								gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
-								gap: "4rem 2rem",
-							}}
+							className="stack-on-mobile"
+							style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))", gap: "4rem 2rem" }}
 						>
 							{featureCards.map((feat, i) => {
 								const Icon = feat.icon;
 								return (
 									<motion.div key={i} variants={itemVariants}>
-										<Icon
-											size={32}
-											color="var(--text-primary)"
-											style={{ marginBottom: "1.5rem" }}
-										/>
-										<h3
-											style={{
-												fontSize: "1.5rem",
-												fontWeight: 700,
-												color: "var(--text-primary)",
-												marginBottom: "1rem",
-											}}
-										>
-											{feat.title}
-										</h3>
-										<p
-											style={{
-												fontSize: "1.125rem",
-												color: "var(--text-secondary)",
-												lineHeight: 1.6,
-												marginBottom: "1.5rem",
-											}}
-										>
-											{feat.description}
-										</p>
+										<Icon size={32} color="var(--text-primary)" style={{ marginBottom: "1.5rem" }} />
+										<h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "1rem" }}>{feat.title}</h3>
+										<p style={{ fontSize: "1.125rem", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "1.5rem" }}>{feat.description}</p>
 										<ul style={{ listStyleType: "none", padding: 0 }}>
 											{feat.list.map((item, j) => (
-												<li
-													key={j}
-													style={{
-														display: "flex",
-														alignItems: "center",
-														gap: "0.75rem",
-														marginBottom: "0.5rem",
-														color: "var(--text-secondary)",
-													}}
-												>
-													<span
-														style={{
-															color: "var(--brand-secondary)",
-															fontSize: "1.5rem",
-															lineHeight: 0,
-														}}
-													>
-														•
-													</span>{" "}
-													{item}
+												<li key={j} style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>
+													<span style={{ color: "var(--brand-secondary)", fontSize: "1.5rem", lineHeight: 0 }}>•</span> {item}
 												</li>
 											))}
 										</ul>
 									</motion.div>
-								);
+								)
 							})}
 						</motion.div>
 					</div>
 				</section>
+
+				{/* Quotes Section */}
+				<section className="p-mobile-md" style={{ background: "var(--bg-tertiary)", padding: "8rem 0" }}>
+					<div className="container">
+						<div className="stack-on-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))", gap: "4rem" }}>
+							<div style={{ color: "var(--text-inverse)" }}>
+								<p style={{ fontSize: "2.5rem", fontWeight: 600, fontStyle: "italic", lineHeight: 1.3, marginBottom: "2rem", fontFamily: "Georgia, serif" }}>
+									&quot;Dependency hell is not a rite of passage. It&apos;s a waste of time.&quot;
+								</p>
+								<p style={{ color: "var(--text-muted)", fontSize: "1.125rem" }}>— The EnvForage Team</p>
+							</div>
+							<div style={{ color: "var(--text-inverse)" }}>
+								<p style={{ fontSize: "2.5rem", fontWeight: 600, fontStyle: "italic", lineHeight: 1.3, marginBottom: "2rem", fontFamily: "Georgia, serif" }}>
+									&quot;Your GPU should accelerate your research, not your frustration.&quot;
+								</p>
+								<p style={{ color: "var(--text-muted)", fontSize: "1.125rem" }}>— EnvForage Philosophy</p>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				{/* Bottom CTA */}
+				<section className="p-mobile-md text-center-mobile" style={{ padding: "8rem 0", textAlign: "center" }}>
+					<div className="container">
+						<h2 style={{ fontSize: "3.5rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "1.5rem" }}>Download EnvForage</h2>
+						<p style={{ fontSize: "1.25rem", color: "var(--text-secondary)", marginBottom: "3rem" }}>Available for all major platforms. Start eliminating dependency hell today.</p>
+						<Link
+							href="/install"
+							style={{
+								display: "inline-block",
+								padding: "1.25rem 3rem",
+								borderRadius: "8px",
+								background: "var(--brand-primary)",
+								color: "var(--text-inverse)",
+								fontWeight: 600,
+								fontSize: "1.125rem",
+								textDecoration: "none",
+								transition: "all 0.2s ease",
+							}}
+						>
+							Get Started
+						</Link>
+					</div>
+				</section>
 			</div>
-		</div>
+		</main>
 	);
 }
