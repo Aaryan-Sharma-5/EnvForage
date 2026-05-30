@@ -16,6 +16,7 @@ from envforge_agent.detectors import (
     detect_python,
     detect_ram,
     detect_rocm,
+    detect_disk,
 )
 from envforge_agent.schemas import DiagnosticReport
 
@@ -49,6 +50,7 @@ class ReportBuilder:
         gpus = detect_gpus(timeout=self._timeout)
         cuda_info = detect_cuda(timeout=self._timeout)
         rocm_info = detect_rocm()
+        disk_info = detect_disk()
         installations, active_python = detect_python()
 
         return DiagnosticReport(
@@ -58,6 +60,7 @@ class ReportBuilder:
             gpus=gpus,
             cuda=cuda_info,
             rocm=rocm_info,
+            disk=disk_info,
             python_installations=installations,
             active_python=active_python,
         )

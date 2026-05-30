@@ -183,12 +183,11 @@ def _print_report_summary(report: DiagnosticReport) -> None:
     elif report.ram.total_gb < 16:
         ram_str += "  [yellow][!] WARNING: Under 16 GB — some ML profiles may be slow[/]"
     table.add_row("RAM", ram_str)
-    
-    disk = detect_disk()
-    disk_str = f"{disk['free_gb']} GB free of {disk['total_gb']} GB"
-    if disk["free_gb"] < 5:
+
+    disk_str = f"{report.disk.available_gb:.1f} GB free of {report.disk.total_gb:.1f} GB"
+    if report.disk.available_gb < 5:
         disk_str += "  [bold red]⚠ CRITICAL: Under 5 GB — setup will likely fail[/]"
-    elif disk["free_gb"] < 20:
+    elif report.disk.available_gb < 20:
         disk_str += "  [yellow]⚠ WARNING: Low disk space — GPU profiles need 20+ GB[/]"
     table.add_row("Disk Free", disk_str)
 
