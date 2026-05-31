@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.middleware.rate_limit import InMemoryBackend, RateLimiter, _fallback_backend
+from app.middleware.rate_limit import InMemoryBackend, RateLimiter
 
 
 @pytest.fixture
