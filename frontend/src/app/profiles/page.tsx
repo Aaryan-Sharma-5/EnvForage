@@ -43,12 +43,14 @@ export default function ProfilesPage() {
 
 	// Filter profiles based on search and selected options
 	const filteredProfiles = profiles.filter((p) => {
+		const description = p.description ?? "";
+		const tags = p.tags ?? [];
+		const normalizedQuery = searchQuery.toLowerCase();
+
 		const matchesSearch =
-			p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			p.tags.some((tag) =>
-				tag.toLowerCase().includes(searchQuery.toLowerCase()),
-			);
+			p.name.toLowerCase().includes(normalizedQuery) ||
+			description.toLowerCase().includes(normalizedQuery) ||
+			tags.some((tag) => tag.toLowerCase().includes(normalizedQuery));
 
 		const matchesOS =
 			selectedOS === "ALL" ||
@@ -378,7 +380,7 @@ export default function ProfilesPage() {
 											minHeight: "4.5rem",
 										}}
 									>
-										{p.description}
+										{p.description ?? "No description available."}
 									</p>
 
 									{/* OS & Python specs */}
