@@ -43,12 +43,14 @@ async def require_admin(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
-                "error": "ADMIN_KEY_NOT_CONFIGURED",
-                "message": (
-                    "Admin API key is not configured on this server. "
-                    "Set ADMIN_API_KEY in the environment before using "
-                    "admin-only endpoints."
-                ),
+                "error": {
+                    "code": "ADMIN_KEY_NOT_CONFIGURED",
+                    "message": (
+                        "Admin API key is not configured on this server. "
+                        "Set ADMIN_API_KEY in the environment before using "
+                        "admin-only endpoints."
+                    ),
+                }
             },
         )
 
@@ -58,8 +60,10 @@ async def require_admin(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
-                "error": "INVALID_ADMIN_KEY",
-                "message": "Missing or invalid X-Admin-API-Key header.",
+                "error": {
+                    "code": "INVALID_ADMIN_KEY",
+                    "message": "Missing or invalid X-Admin-API-Key header.",
+                }
             },
             headers={"WWW-Authenticate": "ApiKey"},
         )

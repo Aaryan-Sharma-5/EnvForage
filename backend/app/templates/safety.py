@@ -167,6 +167,11 @@ def validate_rendered_output(
                     context=f"Template: {template_name}",
                 )
         except Exception as e:
-            logger.error(f"AI Safety check skipped due to provider error: {str(e)}")
+            logger.error(f"AI Safety check failed due to provider error: {str(e)}")
+            raise SafetyViolationError(
+                pattern="AI_SAFETY_FILTER_ERROR",
+                description=f"AI Auditor failed to complete the safety check: {str(e)}",
+                context=f"Template: {template_name}",
+            )
 
     return content

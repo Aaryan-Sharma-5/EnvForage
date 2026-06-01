@@ -184,6 +184,16 @@ FRAMEWORK_CUDA_SUPPORT: dict[str, dict[str, list[str]]] = {
         "0.4.28": ["12.1", "12.4"],
         "0.4.30": ["12.1", "12.4", "12.6"],
     },
+    "diffusers": {
+        # Diffusers delegates GPU to PyTorch — CUDA support matches torch dep.
+        # Source: https://github.com/huggingface/diffusers/blob/main/setup.py
+        "0.21.0": ["11.7", "11.8", "12.1"],
+        "0.24.0": ["11.8", "12.1"],
+        "0.25.0": ["11.8", "12.1"],
+        "0.26.0": ["11.8", "12.1"],
+        "0.27.0": ["11.8", "12.1"],
+        "0.27.2": ["11.8", "12.1"],
+    },
 }
 
 

@@ -1,0 +1,112 @@
+#!/bin/bash
+# ==============================================================================
+# EnvForge Environment Verification — Hugging Face Diffusers
+# Profile  : {{ profile.name }}
+# Generated: {{ generated_at }}
+# ==============================================================================
+set -euo pipefail
+
+GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
+pass() { echo -e "${GREEN}[PASS]${NC} $1"; }
+fail() { echo -e "${RED}[FAIL]${NC} $1"; FAILED=$((FAILED+1)); }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+
+FAILED=0
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " EnvForge Verification — {{ profile.name }}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Check 1: Python version
+PY_VER=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+if [[ "$PY_VER" == "{{ python_version }}" ]]; then
+    pass "Python {{ python_version }} ($(python3 --version))"
+else
+    fail "Python version mismatch: expected {{ python_version }}, got $PY_VER"
+fi
+
+# Check 2: PyTorch import and CUDA
+if python3 -c "import torch; print(f'torch {torch.__version__}')" 2>/dev/null; then
+    pass "PyTorch import successful"
+else
+    fail "PyTorch import failed — is it installed?"
+fi
+
+CUDA_AVAIL=$(python3 -c "import torch; print(torch.cuda.is_available())" 2>/dev/null || echo "False")
+if [[ "$CUDA_AVAIL" == "True" ]]; then
+    DEVICE_NAME=$(python3 -c "import torch; print(torch.cuda.get_device_name(0))" 2>/dev/null || echo "unknown")
+    VRAM_MB=$(python3 -c "import torch; print(torch.cuda.get_device_properties(0).total_mem // (1024**2))" 2>/dev/null || echo "unknown")
+    pass "CUDA available — GPU: $DEVICE_NAME (${VRAM_MB} MB VRAM)"
+    if [[ "$VRAM_MB" != "unknown" ]] && (( VRAM_MB < 6144 )); then
+        warn "GPU has ${VRAM_MB} MB VRAM. Stable Diffusion recommends ≥6 GB (8 GB+ preferred)."
+    fi
+else
+    fail "torch.cuda.is_available() returned False"
+    warn "Diffusers requires a CUDA-capable GPU for image generation."
+fi
+
+{% if cuda_version %}
+# Check 3: CUDA version match
+TORCH_CUDA=$(python3 -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "none")
+if [[ "$TORCH_CUDA" == "{{ cuda_version }}"* ]]; then
+    pass "PyTorch CUDA version: $TORCH_CUDA (expected {{ cuda_version }})"
+else
+    fail "CUDA version mismatch: PyTorch has $TORCH_CUDA, expected {{ cuda_version }}"
+fi
+{% endif %}
+
+# Check 4: Diffusers import
+if python3 -c "import diffusers; print(f'diffusers {diffusers.__version__}')" 2>/dev/null; then
+    pass "Diffusers import successful"
+else
+    fail "Diffusers import failed — is it installed?"
+fi
+
+# Check 5: Transformers import
+if python3 -c "import transformers; print(f'transformers {transformers.__version__}')" 2>/dev/null; then
+    pass "Transformers import successful"
+else
+    fail "Transformers import failed — is it installed?"
+fi
+
+# Check 6: Accelerate import
+if python3 -c "import accelerate; print(f'accelerate {accelerate.__version__}')" 2>/dev/null; then
+    pass "Accelerate import successful"
+else
+    fail "Accelerate import failed — is it installed?"
+fi
+
+# Check 7: Safetensors import
+if python3 -c "import safetensors; print(f'safetensors {safetensors.__version__}')" 2>/dev/null; then
+    pass "Safetensors import successful"
+else
+    fail "Safetensors import failed — is it installed?"
+fi
+
+# Check 8: Pipeline smoke test (no model download — just verifies the class loads)
+if python3 -c "
+from diffusers import DiffusionPipeline
+from diffusers import StableDiffusionPipeline
+print('DiffusionPipeline and StableDiffusionPipeline classes loaded OK')
+" 2>/dev/null; then
+    pass "Diffusers pipeline classes load correctly"
+else
+    fail "Diffusers pipeline classes failed to load"
+fi
+
+# Check 9: nvidia-smi
+if command -v nvidia-smi >/dev/null 2>&1; then
+    DRIVER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)
+    pass "nvidia-smi — driver: $DRIVER"
+else
+    fail "nvidia-smi not found — NVIDIA driver not installed"
+fi
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [[ $FAILED -eq 0 ]]; then
+    echo -e "${GREEN}✓ All checks passed — Diffusers environment is ready!${NC}"
+    exit 0
+else
+    echo -e "${RED}✗ $FAILED check(s) failed${NC}"
+    exit 1
+fi

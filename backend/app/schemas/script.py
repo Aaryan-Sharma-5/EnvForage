@@ -17,7 +17,6 @@ OutputFormat = Literal[
     "docker-compose.yml",
     "devcontainer.json",
     ".gitignore",
-    "pyproject.toml",
     "pyproject.poetry.toml",
 ]
 

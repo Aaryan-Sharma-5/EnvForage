@@ -195,7 +195,6 @@ profiles:
         version_spec: "1.13.0"
         install_order: 7
 
-
   - slug: jax-cuda
     name: "JAX CUDA"
     description: >
@@ -270,7 +269,6 @@ profiles:
       - name: Pillow
         version_spec: "10.3.0"
         install_order: 6
-
   - slug: langchain-rag
     name: "LangChain RAG"
     description: >
