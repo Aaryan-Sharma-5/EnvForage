@@ -206,11 +206,11 @@ async def test_create_profile_with_wrong_admin_key_returns_401(client):
         "/api/v1/profiles", json=profile_data, headers=wrong_headers
     )
     assert response.status_code == 401
-    assert response.json()["detail"]["error"] == "INVALID_ADMIN_KEY"
+    assert response.json()["detail"]["error"]["code"] == "INVALID_ADMIN_KEY"
 
 
 async def test_delete_profile_with_wrong_admin_key_returns_401(client):
     wrong_headers = {"X-Admin-API-Key": "this-is-not-the-right-key"}
     response = await client.delete("/api/v1/profiles/any-slug", headers=wrong_headers)
     assert response.status_code == 401
-    assert response.json()["detail"]["error"] == "INVALID_ADMIN_KEY"
+    assert response.json()["detail"]["error"]["code"] == "INVALID_ADMIN_KEY"
