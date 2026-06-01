@@ -64,7 +64,7 @@ class RAMInfo(BaseModel):
 class GPUInfo(BaseModel):
     name: str = Field(
         ...,
-        max_length=256,
+        max_length=128,
         description="GPU model name.",
         examples=["NVIDIA RTX 4060 Laptop GPU"],
     )
@@ -125,7 +125,7 @@ class ROCMInfo(BaseModel):
 class PythonInfo(BaseModel):
     version: str = Field(
         ...,
-        max_length=20,
+        max_length=8,
         description="Installed Python version.",
         examples=["3.11.4"],
     )
