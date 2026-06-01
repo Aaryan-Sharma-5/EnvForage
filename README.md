@@ -173,6 +173,7 @@ curl -X POST http://localhost:8000/api/v1/scripts/generate \
 | [CLI_REFERENCE.md](./docs/CLI_REFERENCE.md) | Commands for `envforge diagnose`, `verify`, and `fix` |
 | [API_DESIGN.md](./docs/API_DESIGN.md) | REST endpoints, schemas, and validation rules |
 | [PROFILE_SPEC.md](./docs/PROFILE_SPEC.md) | How to build and define new ML profiles |
+| [TASKS.md](./TASKS.md) | The master implementation blueprint |
 
 ---
 
