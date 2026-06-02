@@ -8,6 +8,7 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import ScrollToTop from "./components/ScrollToTop";
 import { ThemeProvider } from "./providers";
+import CanonicalURL from "./components/CanonicalURL";
 
 const inter = Inter({
 	subsets: ["latin"],
@@ -27,10 +28,21 @@ const jetbrainsMono = JetBrains_Mono({
 	display: "swap",
 });
 
+const BASE_URL = (() => {
+	let raw = process.env.NEXT_PUBLIC_BASE_URL?.trim() || "http://localhost:3000";
+	if (raw.endsWith("/")) raw = raw.slice(0, -1);
+	if (!raw.startsWith("http")) raw = `https://${raw}`;
+	return raw;
+})();
+
 export const metadata: Metadata = {
+	metadataBase: new URL(BASE_URL),
 	title: "EnvForage | ML Environment Provisioning",
 	description:
 		"Generate intelligent, safe, and deterministic ML/AI environment setup scripts.",
+	// NOTE: Per-page canonical URLs are set via individual page metadata exports
+	// and the <CanonicalURL /> client component mounted below in <head>.
+	// Do NOT set a root-level canonical here — it would override every page with "/".
 };
 
 export default function RootLayout({
@@ -41,6 +53,9 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
+				{/* Canonical URL — prevents duplicate indexing across trailing-slash,
+				    query-string, and www/non-www variants for every route. */}
+				<CanonicalURL />
 				<Script id="theme-init" strategy="beforeInteractive">
 					{`
             try {
