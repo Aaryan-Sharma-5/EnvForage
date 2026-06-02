@@ -160,7 +160,8 @@ class DiagnosticReportSchema(BaseModel):
     ram: RAMInfo
     gpus: list[GPUInfo] = Field(
         default_factory=list,
-        description="Detected GPUs on the system.",
+        max_length=32,
+        description="Detected GPUs on the system. Capped at 32 entries to prevent memory exhaustion.",
     )
     cuda: CUDAInfo = Field(
         default_factory=lambda: CUDAInfo(
@@ -181,7 +182,8 @@ class DiagnosticReportSchema(BaseModel):
     )
     python_installations: list[PythonInfo] = Field(
         default_factory=list,
-        description="All detected Python installations.",
+        max_length=64,
+        description="All detected Python installations. Capped at 64 entries to prevent memory exhaustion.",
     )
     active_python: PythonInfo | None = Field(
         None,
