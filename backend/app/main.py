@@ -28,6 +28,9 @@ from app.core.handlers import register_exception_handlers
 from app.database import AsyncSessionLocal
 from app.middleware.metrics import setup_metrics
 from app.middleware.payload_size import PayloadSizeLimitMiddleware
+from app.services.sync_service import matrix_sync_loop
+from app.api.v1.admin.matrix import router as admin_matrix_router
+import sys
 
 
 @asynccontextmanager
@@ -37,7 +40,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     print(
         f"[START] EnvForge API {settings.app_version} starting [{settings.environment}]"
     )
+    sync_task = None
+    if "pytest" not in sys.modules:
+        sync_task = asyncio.create_task(matrix_sync_loop(AsyncSessionLocal))
+
     yield
+
+    if sync_task:
+        sync_task.cancel()
+        try:
+            await sync_task
+        except asyncio.CancelledError:
+            pass
     print("🛑 EnvForge API shutting down")
 
 
@@ -82,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(verify.router, prefix="/api/v1", tags=["verify"])
     app.include_router(compatibility.router, prefix="/api/v1", tags=["compatibility"])
     app.include_router(authentication.router, prefix="/api/v1", tags=["auth"])
+    app.include_router(admin_matrix_router, prefix="/api/v1", tags=["admin-matrix"])
 
     # ── Health check ──────────────────────────────────────────
     @app.get("/health", include_in_schema=False)
