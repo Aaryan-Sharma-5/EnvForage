@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-02
+
+### Added
+- **Vercel Speed Insights**: Added Vercel speed insights to the frontend.
+- **WSL2 Diagnostics**: Add WSL2 GPU passthrough diagnostics and warning before provisioning.
+- **Dynamic Versioning**: Use dynamic version string from `__init__.py` for the CLI agent to prevent PyPI publish errors.
+
+### Fixed
+- **Backend Error**: Resolved backend production errors.
+- **Profiles Metadata**: Fixed null metadata handling in profiles.
+
+## [1.0.1] - 2026-05-30
+
 ### Added
 - **Frontend Containerization & Orchestration:**
   - Added a multi-stage `Dockerfile` and `.dockerignore` for the Next.js frontend application.
