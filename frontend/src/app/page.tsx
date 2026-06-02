@@ -299,25 +299,7 @@ export default function HomePage() {
 							Get Started
 						</Link>
 						
-						<button
-							onClick={() => {
-								throw new Error("Sentry Test Error from EnvForage!");
-							}}
-							style={{
-								display: "inline-block",
-								padding: "1.25rem 3rem",
-								marginLeft: "1rem",
-								borderRadius: "8px",
-								background: "#ff4444",
-								color: "white",
-								fontWeight: 600,
-								fontSize: "1.125rem",
-								border: "none",
-								cursor: "pointer",
-							}}
-						>
-							Trigger Sentry Error
-						</button>
+						
 					</div>
 				</section>
 			</div>
