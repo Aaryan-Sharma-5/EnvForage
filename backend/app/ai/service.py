@@ -186,7 +186,7 @@ class AITroubleshootService:
             db,
             session_id=session_id,
             input_hash=input_hash,
-            safety_passed=not persist_failed,
+            safety_passed=True,
             safety_violation="DB persistence failure" if persist_failed else None,
             provider=provider_name,
             tokens_used=total_tokens,
