@@ -145,12 +145,12 @@ jobs:
 
             // Program labels validation
             if (foundPrograms.length === 0) {
-              missingCategories.push('Program label (e.g. `gssoc:approved`, `SSoC26`, `NSoC\'26`)');
+              labelsToAdd.push('gssoc');
             }
 
             // Difficulty labels validation (Exclusivity: only ONE allowed)
             if (foundDifficulty.length === 0) {
-              missingCategories.push('Difficulty label (e.g. `level1`, `level2`, `level3`)');
+              labelsToAdd.push('level1');
             } else if (foundDifficulty.length > 1) {
               const keep = foundDifficulty[0];
               const remove = foundDifficulty.slice(1);
@@ -160,7 +160,7 @@ jobs:
 
             // Effort labels validation (Exclusivity: only ONE allowed)
             if (foundEffort.length === 0) {
-              missingCategories.push('Effort label (e.g. `easy`, `medium`, `hard`)');
+              labelsToAdd.push('easy');
             } else if (foundEffort.length > 1) {
               const keep = foundEffort[0];
               const remove = foundEffort.slice(1);
@@ -170,12 +170,12 @@ jobs:
 
             // Type labels validation
             if (foundTypes.length === 0) {
-              missingCategories.push('Type label (e.g. `type:bug`, `type:feature`, `type:docs`, etc.)');
+              labelsToAdd.push('type:feature');
             }
 
             // Difficulty2 labels validation (Exclusivity: only ONE allowed)
             if (foundDifficulty2.length === 0) {
-              missingCategories.push('Difficulty2 label (e.g. `level:critical`, `level:beginner`, `level:intermediate`, `level:advanced`)');
+              labelsToAdd.push('level:beginner');
             } else if (foundDifficulty2.length > 1) {
               const keep = foundDifficulty2[0];
               const remove = foundDifficulty2.slice(1);
