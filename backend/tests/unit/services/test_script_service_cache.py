@@ -98,7 +98,7 @@ async def test_generate_scripts_returns_cached_resolved_environment(monkeypatch)
     redis = FakeRedis(json.dumps(cached.to_dict()))
 
     class ResolverShouldNotRun:
-        def resolve(self, **kwargs):
+        async def resolve(self, **kwargs):
             raise AssertionError("resolver should not run on cache hit")
 
     monkeypatch.setattr(
@@ -123,7 +123,7 @@ async def test_generate_scripts_caches_resolved_environment_on_miss(monkeypatch)
         def __init__(self) -> None:
             self.calls = 0
 
-        def resolve(self, **kwargs):
+        async def resolve(self, **kwargs):
             self.calls += 1
             return _resolved(version="2.2.0")
 

@@ -170,7 +170,7 @@ async def generate_scripts(
     cache_key = _resolver_cache_key(profile, request, constraints)
     resolved = await _get_cached_resolved_environment(cache_key)
     if resolved is None:
-        resolved = _resolver.resolve(
+        resolved = await _resolver.resolve(
             packages=constraints,
             python_version=request.python_version,
             cuda_version=request.cuda_version,
@@ -179,6 +179,7 @@ async def generate_scripts(
             os_support=list(profile.os_support),
             cuda_required=profile.cuda_required,
             overrides=request.overrides,
+            db=db,
         )
         await _cache_resolved_environment(cache_key, resolved)
 

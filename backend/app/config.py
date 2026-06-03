@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     # Format: redis://:password@host:port/db  or  redis://host:port/db
     redis_url: str | None = None
     resolver_cache_ttl_seconds: int = 86400
+    run_sync_loop: bool = True
 
     # ── CORS ─────────────────────────────────────────────────
     allowed_origins: str = "http://localhost:3000"

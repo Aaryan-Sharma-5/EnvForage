@@ -151,8 +151,7 @@ async def diagnose(
             for package in sorted(profile.packages, key=lambda item: item.install_order)
         ]
         async with _RESOLVER_SEMAPHORE:
-            return await asyncio.to_thread(
-                resolver.resolve,
+            return await resolver.resolve(
                 packages=packages,
                 python_version=(
                     report.active_python.version if report.active_python else None
@@ -165,6 +164,7 @@ async def diagnose(
                 os_support=profile.os_support,
                 cuda_required=profile.cuda_required,
                 rocm_required=getattr(profile, "rocm_required", False),
+                db=db,
             )
 
     results = await asyncio.gather(
