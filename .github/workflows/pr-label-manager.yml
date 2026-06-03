@@ -442,76 +442,42 @@ jobs:
             let commentBody = `${STICKY_SIGNATURE}\n\n`;
 
             if (!hasPRIssues) {
-              commentBody += `## 🎉 PR Label & Quality Watchdog: All Checks Passed!
-
-Hi @${pr.user.login}, 
-
-Great job! All required labels have been applied and all quality checks have passed.
-
-* **Mandatory Labels:** ✅ All categories present and validated
-* **Merge Conflicts:** ✅ No conflicts detected
-* **CI / Build Checks:** ✅ All checks passed
-* **Review Feedback:** ✅ No active critical, high, or medium severity concerns identified
-
-${hasCodeRabbitFeedback ? '*🤖 CodeRabbit review feedback was analyzed.*\n' : ''}${hasCopilotFeedback ? '*🤖 GitHub Copilot comments were analyzed.*\n' : ''}
----
-*Last updated: ${new Date().toUTCString()}*`;
+              commentBody += `## 🎉 PR Label & Quality Watchdog: All Checks Passed!\n\nHi @${pr.user.login}, \n\nGreat job! All required labels have been applied and all quality checks have passed.\n\n* **Mandatory Labels:** ✅ All categories present and validated\n* **Merge Conflicts:** ✅ No conflicts detected\n* **CI / Build Checks:** ✅ All checks passed\n* **Review Feedback:** ✅ No active critical, high, or medium severity concerns identified\n\n${hasCodeRabbitFeedback ? '*🤖 CodeRabbit review feedback was analyzed.*\n' : ''}${hasCopilotFeedback ? '*🤖 GitHub Copilot comments were analyzed.*\n' : ''}\n---\n*Last updated: ${new Date().toUTCString()}*`;
             } else {
-              commentBody += `## 🔍 PR Label & Quality Watchdog Report
-
-Hi @${pr.user.login},
-
-We detected some items on this Pull Request that require attention before it can be merged:
-
-`;
+              commentBody += `## 🔍 PR Label & Quality Watchdog Report\n\nHi @${pr.user.login},\n\nWe detected some items on this Pull Request that require attention before it can be merged:\n\n`;
 
               // Required label enforcement reporting
               if (hasLabelIssues) {
-                commentBody += `### ⚠️ Missing Required Labels
-Please ensure this PR has at least one label from each missing category:
-`;
+                commentBody += `### ⚠️ Missing Required Labels\nPlease ensure this PR has at least one label from each missing category:\n`;
                 for (const cat of missingCategories) {
                   commentBody += `- [ ] **Missing ${cat}**\n`;
                 }
                 commentBody += `\n`;
               } else {
-                commentBody += `### ✅ Required Labels
-All mandatory label groups are present: Program, Difficulty, Effort, Type, and Difficulty2.
-\n`;
+                commentBody += `### ✅ Required Labels\nAll mandatory label groups are present: Program, Difficulty, Effort, Type, and Difficulty2.\n\n`;
               }
 
               // Merge conflict reporting
               if (hasMergeConflicts) {
-                commentBody += `### ❌ Merge Conflicts
-This branch has merge conflicts with the target branch. Please rebase or merge the target branch and resolve the conflicts.
-\n`;
+                commentBody += `### ❌ Merge Conflicts\nThis branch has merge conflicts with the target branch. Please rebase or merge the target branch and resolve the conflicts.\n\n`;
               } else {
-                commentBody += `### ✅ Merge Conflicts
-No conflicts detected.
-\n`;
+                commentBody += `### ✅ Merge Conflicts\nNo conflicts detected.\n\n`;
               }
 
               // CI status reporting
               if (hasFailingChecks) {
-                commentBody += `### ❌ Failing CI Checks
-The following check runs or commit statuses are failing:
-`;
+                commentBody += `### ❌ Failing CI Checks\nThe following check runs or commit statuses are failing:\n`;
                 for (const check of failedChecks) {
                   commentBody += `- [${check.name}](${check.url})\n`;
                 }
                 commentBody += `\n`;
               } else {
-                commentBody += `### ✅ CI Checks
-All checks passed.
-\n`;
+                commentBody += `### ✅ CI Checks\nAll checks passed.\n\n`;
               }
 
               // Review feedback reporting
               if (totalFindingsCount > 0) {
-                commentBody += `### ❌ Review Feedback Findings
-The following issues were flagged in reviews:
-
-`;
+                commentBody += `### ❌ Review Feedback Findings\nThe following issues were flagged in reviews:\n\n`;
                 if (activeReviewFindings.critical.length > 0) {
                   commentBody += `#### 🔴 Critical Severity Issues\n`;
                   for (const item of activeReviewFindings.critical) {
@@ -536,14 +502,10 @@ The following issues were flagged in reviews:
                   commentBody += `\n`;
                 }
               } else {
-                commentBody += `### ✅ Review Feedback
-No critical, high, or medium severity review issues detected.
-\n`;
+                commentBody += `### ✅ Review Feedback\nNo critical, high, or medium severity review issues detected.\n\n`;
               }
 
-              commentBody += `Please resolve the issues above to proceed.
-\n---
-*Last updated: ${new Date().toUTCString()}*`;
+              commentBody += `Please resolve the issues above to proceed.\n\n---\n*Last updated: ${new Date().toUTCString()}*`;
             }
 
             // Find existing watchdog comment to create or update
