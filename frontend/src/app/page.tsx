@@ -106,6 +106,7 @@ export default function HomePage() {
 				<div className="container" style={{ maxWidth: "1200px", position: "relative", zIndex: 2 }}>
 					<motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
 						<h1
+							className="hero-title"
 							style={{
 								fontSize: "clamp(4rem, 8vw, 7.5rem)",
 								fontWeight: 900,
