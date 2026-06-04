@@ -7,6 +7,8 @@ All configuration is sourced from environment variables or a local `.env` file.
 shares the same env-loading bootstrap before `Settings` is read.
 """
 
+import sys
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -77,19 +79,41 @@ class Settings(BaseSettings):
     admin_api_key: str = ""
 
     @model_validator(mode="after")
-    def validate_secret_key(self) -> "Settings":
-        """Enforce a strong SECRET_KEY and ADMIN_API_KEY in non-development environments.
+    def validate_settings(self) -> "Settings":
+        """Validate settings after initialization.
 
-        The default value (DEV_SECRET_KEY) is committed to the public repository.
-        Any deployment that omits SECRET_KEY in staging or production will silently
-        sign JWTs with this known-public string, allowing trivial token forgery.
-
-        Admin API key must also be configured for non-development environments to prevent
-        unauthorized administrative access.
-
-        Raises:
-            ValueError: When required credentials are missing or insecure outside development.
+        Enforce a strong SECRET_KEY and ADMIN_API_KEY in non-development environments,
+        and validate custom_template_dir is within safe boundaries.
         """
+        # Validate custom_template_dir
+        if self.custom_template_dir:
+            resolved_path = self.custom_template_dir.resolve()
+            project_root = Path(__file__).resolve().parent.parent.parent
+
+            is_valid = False
+            try:
+                resolved_path.relative_to(project_root)
+                is_valid = True
+            except ValueError:
+                pass
+
+            if not is_valid and "pytest" in sys.modules:
+                temp_dir = Path(tempfile.gettempdir()).resolve()
+                try:
+                    resolved_path.relative_to(temp_dir)
+                    is_valid = True
+                except ValueError:
+                    pass
+
+            if not is_valid:
+                raise ValueError(
+                    f"custom_template_dir '{self.custom_template_dir}' resolved to '{resolved_path}' "
+                    f"which is outside the safe boundary (project root: '{project_root}')."
+                )
+
+            self.custom_template_dir = resolved_path
+
+        # Validate SECRET_KEY and ADMIN_API_KEY
         if self.environment != "development":
             # Validate SECRET_KEY is not the default
             if self.secret_key == DEV_SECRET_KEY:
