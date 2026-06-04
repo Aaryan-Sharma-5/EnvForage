@@ -1,3 +1,14 @@
+"""Authentication endpoints — /signup, /signin, /me.
+
+Rate-limiting:  /signup and /signin are protected by dedicated per-IP
+rate limiters to prevent brute-force and credential-stuffing attacks:
+  - Signup: 5 attempts per 15 minutes per IP
+  - Signin: 10 attempts per 15 minutes per IP
+
+JWT validation: the /me endpoint demonstrates the ``CurrentUser`` dependency
+that other routes should use to require an authenticated user.
+"""
+
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,7 +17,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import DB
+from app.api.deps import DB, CurrentUser
 from app.config import get_settings
 from app.middleware.rate_limit import RateLimiter
 from app.services.user_repository import UserRepository
@@ -14,16 +25,18 @@ from app.services.user_repository import UserRepository
 router = APIRouter()
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Rate limiters for authentication endpoints
-# Prevent credential brute force and account enumeration attacks
-# Signup: 5 attempts per 15 minutes per IP
+# Rate limiters for authentication endpoints.
+# Auth endpoints are high-value brute-force targets so they get tighter
+# windows than the general-API limiter (60 rpm).
+# Signup: 5 attempts per 15 minutes per IP — prevents mass account creation.
 auth_signup_limiter = RateLimiter(max_requests=5, window_seconds=900)
-
-# Signin: 10 attempts per 15 minutes per IP (slightly more lenient for legitimate users)
+# Signin: 10 attempts per 15 minutes per IP — allows a few retries for
+# legitimate users while blocking dictionary attacks.
 auth_signin_limiter = RateLimiter(max_requests=10, window_seconds=900)
 
 
 # ── Request schemas ────────────────────────────────────────────────────────────
+
 
 class RegData(BaseModel):
     fname: str
@@ -31,7 +44,7 @@ class RegData(BaseModel):
     email: EmailStr
     password: str = Field(
         min_length=12,
-        description="Must be at least 12 characters with uppercase, lowercase, digit, and symbol"
+        description="Must be at least 12 characters with uppercase, lowercase, digit, and symbol",
     )
 
     @field_validator("password")
@@ -44,39 +57,25 @@ class RegData(BaseModel):
         - At least one uppercase letter (A-Z)
         - At least one lowercase letter (a-z)
         - At least one digit (0-9)
-        - At least one special character (!@#$%^&*)
+        - At least one special character
 
         bcrypt also has a hard 72-byte limit on UTF-8 encoded passwords.
         Two different passwords that share the same first 72 bytes would
         both authenticate successfully. We reject longer passwords early
         to avoid silent data loss and auth ambiguity.
         """
-        if len(v) < 12:
-            raise ValueError(
-                "Password must be at least 12 characters long. "
-                "Shorter passwords are vulnerable to dictionary attacks."
-            )
-
         if len(v.encode("utf-8")) > 72:
             raise ValueError("Password must not exceed 72 bytes (UTF-8 encoded)")
 
-        # Check for uppercase letters
         if not any(c.isupper() for c in v):
-            raise ValueError(
-                "Password must contain at least one uppercase letter (A-Z)"
-            )
+            raise ValueError("Password must contain at least one uppercase letter (A-Z)")
 
-        # Check for lowercase letters
         if not any(c.islower() for c in v):
-            raise ValueError(
-                "Password must contain at least one lowercase letter (a-z)"
-            )
+            raise ValueError("Password must contain at least one lowercase letter (a-z)")
 
-        # Check for digits
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit (0-9)")
 
-        # Check for special characters
         special_chars = "!@#$%^&*()-_=+[]{}|;:',.<>?/~`"
         if not any(c in special_chars for c in v):
             raise ValueError(
@@ -93,6 +92,7 @@ class LoginData(BaseModel):
 
 # ── Response schemas ───────────────────────────────────────────────────────────
 
+
 class MessageResponse(BaseModel):
     message: str
 
@@ -102,29 +102,32 @@ class TokenResponse(BaseModel):
     email: EmailStr
 
 
+class MeResponse(BaseModel):
+    email: EmailStr
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-@router.post("/signup", response_model=MessageResponse)
+
+@router.post(
+    "/signup",
+    response_model=MessageResponse,
+    summary="Register a new user account",
+    responses={
+        400: {"description": "Email already registered"},
+        422: {"description": "Validation error (password too weak/long, invalid email)"},
+        429: {"description": "Rate limit exceeded"},
+    },
+)
 async def signup(
     data: RegData,
     db: DB,
     _rate_limit: None = Depends(auth_signup_limiter),
 ) -> MessageResponse:
-    """Create a new user account with rate limiting against brute force.
+    """Create a new user account.
 
-    Prevents account enumeration and signup abuse through rate limiting.
-    Limits to 5 signup attempts per 15 minutes per IP address.
-
-    Args:
-        data: Registration data (fname, lname, email, password)
-        db: Database session
-        _rate_limit: Rate limiting dependency (raises 429 if limit exceeded)
-
-    Returns:
-        MessageResponse with success message
-
-    Raises:
-        HTTPException: 400 if email already registered, 429 if rate limited
+    Rate-limited to 5 attempts per 15 minutes per IP to prevent mass
+    account creation and credential-stuffing attacks.
     """
     repo = UserRepository(db)
     if await repo.user_exists(data.email):
@@ -144,27 +147,25 @@ async def signup(
     return MessageResponse(message="Account created successfully")
 
 
-@router.post("/signin", response_model=TokenResponse)
+@router.post(
+    "/signin",
+    response_model=TokenResponse,
+    summary="Sign in and receive a JWT access token",
+    responses={
+        401: {"description": "Invalid email or password"},
+        429: {"description": "Rate limit exceeded"},
+    },
+)
 async def signin(
     data: LoginData,
     db: DB,
     _rate_limit: None = Depends(auth_signin_limiter),
 ) -> TokenResponse:
-    """Authenticate user and return JWT token with rate limiting.
+    """Authenticate with email + password and receive a signed JWT.
 
-    Prevents credential brute force attacks through rate limiting.
-    Limits to 10 signin attempts per 15 minutes per IP address.
-
-    Args:
-        data: Login credentials (email, password)
-        db: Database session
-        _rate_limit: Rate limiting dependency (raises 429 if limit exceeded)
-
-    Returns:
-        TokenResponse with JWT token and email
-
-    Raises:
-        HTTPException: 401 if credentials invalid, 429 if rate limited
+    Rate-limited to 10 attempts per 15 minutes per IP to prevent
+    brute-force password attacks. The returned token must be sent as
+    ``Authorization: Bearer <token>`` on subsequent protected requests.
     """
     repo = UserRepository(db)
     user = await repo.get_user_by_email(data.email)
@@ -178,3 +179,19 @@ async def signin(
     return TokenResponse(token=token, email=data.email)
 
 
+@router.get(
+    "/me",
+    response_model=MeResponse,
+    summary="Return the currently authenticated user's email",
+    responses={
+        401: {"description": "Missing, expired, or invalid JWT token"},
+    },
+)
+async def me(current_user: CurrentUser) -> MeResponse:
+    """Return the email of the currently authenticated user.
+
+    Requires a valid ``Authorization: Bearer <token>`` header.
+    Use this as the canonical example of how other endpoints should
+    require authentication via the ``CurrentUser`` dependency.
+    """
+    return MeResponse(email=current_user)

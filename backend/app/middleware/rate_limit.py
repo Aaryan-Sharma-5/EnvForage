@@ -363,3 +363,9 @@ repair_rate_limit = RateLimiter(max_requests=20, window_seconds=60)
 
 # General API: 60 requests per minute
 general_rate_limit = RateLimiter(max_requests=60, window_seconds=60)
+
+# Auth endpoints (/signup, /signin): 20 requests per minute.
+# Stricter than general to limit brute-force and credential-stuffing attacks.
+# Uses a separate limiter instance so auth traffic never competes with
+# general-API quota.
+auth_rate_limit = RateLimiter(max_requests=20, window_seconds=60)
