@@ -8,7 +8,6 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import ScrollToTop from "./components/ScrollToTop";
 import { ThemeProvider } from "./providers";
-import CanonicalURL from "./components/CanonicalURL";
 
 const inter = Inter({
 	subsets: ["latin"],
@@ -71,13 +70,8 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				{/* Canonical URL — prevents duplicate indexing across trailing-slash,
-				    query-string, and www/non-www variants for every route. */}
-				<CanonicalURL />
-				<script
-					id="theme-init"
-					dangerouslySetInnerHTML={{
-						__html: `
+				<Script id="theme-init" strategy="beforeInteractive">
+					{`
             try {
               const storedTheme = localStorage.getItem("theme");
               const theme =
@@ -104,9 +98,8 @@ export default function RootLayout({
             } catch {
               document.documentElement.setAttribute("data-theme", "dark");
             }
-          `,
-					}}
-				/>
+          `}
+				</Script>
 			</head>
 
 			<body
