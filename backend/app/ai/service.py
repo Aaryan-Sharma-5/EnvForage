@@ -361,9 +361,7 @@ class AITroubleshootService:
                         title=fix.title,
                         description=fix.description,
                         severity=fix.severity,
-                        safe_commands=(
-                            fix.safe_commands if fix.safe_commands else None,
-                        ),
+                        safe_commands=fix.safe_commands if fix.safe_commands else None,
                         template_id=fix.repair_template_id,
                         created_at=datetime.now(UTC),
                     )
