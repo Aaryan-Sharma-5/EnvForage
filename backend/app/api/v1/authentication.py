@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from jose import jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -8,10 +8,19 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.deps import DB
 from app.config import get_settings
+from app.middleware.rate_limit import RateLimiter
 from app.services.user_repository import UserRepository
 
 router = APIRouter()
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Rate limiters for authentication endpoints
+# Prevent credential brute force and account enumeration attacks
+# Signup: 5 attempts per 15 minutes per IP
+auth_signup_limiter = RateLimiter(max_requests=5, window_seconds=900)
+
+# Signin: 10 attempts per 15 minutes per IP (slightly more lenient for legitimate users)
+auth_signin_limiter = RateLimiter(max_requests=10, window_seconds=900)
 
 
 # ── Request schemas ────────────────────────────────────────────────────────────
@@ -57,7 +66,27 @@ class TokenResponse(BaseModel):
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/signup", response_model=MessageResponse)
-async def signup(data: RegData, db: DB) -> MessageResponse:
+async def signup(
+    data: RegData,
+    db: DB,
+    _rate_limit: None = Depends(auth_signup_limiter),
+) -> MessageResponse:
+    """Create a new user account with rate limiting against brute force.
+
+    Prevents account enumeration and signup abuse through rate limiting.
+    Limits to 5 signup attempts per 15 minutes per IP address.
+
+    Args:
+        data: Registration data (fname, lname, email, password)
+        db: Database session
+        _rate_limit: Rate limiting dependency (raises 429 if limit exceeded)
+
+    Returns:
+        MessageResponse with success message
+
+    Raises:
+        HTTPException: 400 if email already registered, 429 if rate limited
+    """
     repo = UserRepository(db)
     if await repo.user_exists(data.email):
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -77,7 +106,27 @@ async def signup(data: RegData, db: DB) -> MessageResponse:
 
 
 @router.post("/signin", response_model=TokenResponse)
-async def signin(data: LoginData, db: DB) -> TokenResponse:
+async def signin(
+    data: LoginData,
+    db: DB,
+    _rate_limit: None = Depends(auth_signin_limiter),
+) -> TokenResponse:
+    """Authenticate user and return JWT token with rate limiting.
+
+    Prevents credential brute force attacks through rate limiting.
+    Limits to 10 signin attempts per 15 minutes per IP address.
+
+    Args:
+        data: Login credentials (email, password)
+        db: Database session
+        _rate_limit: Rate limiting dependency (raises 429 if limit exceeded)
+
+    Returns:
+        TokenResponse with JWT token and email
+
+    Raises:
+        HTTPException: 401 if credentials invalid, 429 if rate limited
+    """
     repo = UserRepository(db)
     user = await repo.get_user_by_email(data.email)
     if not user or not pwd.verify(data.password, user.password):
