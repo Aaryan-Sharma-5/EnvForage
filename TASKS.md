@@ -212,4 +212,4 @@
 - [x] **Step 175: K8s Service Manifests** (Target: `helm/envforge/templates/service.yaml`)
 - [x] **Step 176: K8s Ingress Controller Configuration** (Target: `helm/envforge/templates/ingress.yaml`)
 - [x] **Step 177: Redis StatefulSet Manifest** (Target: `helm/envforge/templates/redis-statefulset.yaml`)
-- [ ] **Step 178: Postgres StatefulSet Manifest** (Target: `helm/envforge/templates/postgres-statefulset.yaml`)
+- [x] **Step 178: Postgres StatefulSet Manifest** (Target: `helm/envforge/templates/postgres-statefulset.yaml`)
