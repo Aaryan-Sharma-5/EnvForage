@@ -102,7 +102,7 @@
 - [x] **Step 81: AI Token Usage Tracking Schema** (Target: `backend/app/schemas/ai.py`)
 - [x] **Step 82: Mock AI Provider for Tests** (Target: `backend/app/ai/providers/mock.py`)
 - [x] **Step 83: AI API Key Validator Dependency** (Target: `backend/app/api/deps.py`)
-- [ ] **Step 84: AI Integration Unit Tests** (Target: `backend/tests/unit/ai/test_providers.py`)
+- [x] **Step 84: AI Integration Unit Tests** (Target: `backend/tests/unit/ai/test_providers.py`)
 
 ## Milestone 8: AI Streaming Architecture & UI
 - [x] **Step 85: FastApi StreamingResponse Helper** (Target: `backend/app/ai/service.py`)
