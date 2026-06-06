@@ -31,7 +31,7 @@
 - [x] **Step 20: Devcontainer Virtualization Hub** (Target: `frontend/src/app/downloads/devcontainer/page.tsx`)
 - [x] **Step 21: Conda Virtualization Hub** (Target: `frontend/src/app/downloads/conda/page.tsx`)
 - [x] **Step 22: Telemetry Privacy Protection Statement** (Target: `frontend/src/app/privacy/page.tsx`)
-- [ ] **Step 23: Terms of Service Page** (Target: `frontend/src/app/terms/page.tsx`)
+- [x] **Step 23: Terms of Service Page** (Target: `frontend/src/app/terms/page.tsx`)
 - [x] **Step 24: SEO Meta Tags Implementation** (Target: `frontend/src/app/layout.tsx`)
 
 ## Milestone 3: Documentation Hub & Markdown Engine
