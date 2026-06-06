@@ -147,7 +147,7 @@
 - [ ] **Step 120: Offline Caching Unit Tests** (Target: `cli/tests/test_cache.py`)
 
 ## Milestone 11: Webhooks & Plugin Architecture
-- [ ] **Step 121: Webhook Database Models** (Target: `backend/app/models/webhook.py`)
+- [x] **Step 121: Webhook Database Models** (Target: `backend/app/models/webhook.py`)
 - [ ] **Step 122: Webhook Registration API Routes** (Target: `backend/app/api/v1/webhooks.py`)
 - [ ] **Step 123: Asynchronous Event Dispatcher** (Target: `backend/app/core/events.py`)
 - [ ] **Step 124: HMAC Signature Generator** (Target: `backend/app/core/security.py`)
