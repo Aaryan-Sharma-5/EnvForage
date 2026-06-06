@@ -164,7 +164,7 @@
 - [x] **Step 133: Redis Connection Configuration** (Target: `backend/app/core/redis.py`)
 - [x] **Step 134: Redis-Backed Rate Limiter Middleware** (Target: `backend/app/middleware/rate_limit.py`)
 - [x] **Step 135: Tiered Rate Limit Grouping** (Target: `backend/app/middleware/rate_limit.py`)
-- [ ] **Step 136: PII Sanitization Middleware** (Target: `backend/app/middleware/sanitizer.py`)
+- [x] **Step 136: PII Sanitization Middleware** (Target: `backend/app/middleware/sanitizer.py`)
 - [x] **Step 137: Jinja AST Validator Hook** (Target: `backend/app/templates/engine.py`)
 - [x] **Step 138: Local Script Cryptographic Signatures** (Target: `backend/app/services/repair_service.py`)
 - [x] **Step 139: Helmet Security Headers Middleware** (Target: `backend/app/main.py`)
