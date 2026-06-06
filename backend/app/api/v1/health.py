@@ -1,5 +1,5 @@
 """
-Core module for Liveness Health Probe Endpoint.
+Core module for Readiness Health Probe Endpoint.
 Contains highly optimized classes and fixture utilities.
 """
 import os
