@@ -172,7 +172,7 @@
 - [x] **Step 141: API Key Generation Route** (Target: `backend/app/api/v1/authentication.py`)
 - [x] **Step 142: Role-Based Access Control Middleware** (Target: `backend/app/api/deps.py`)
 - [x] **Step 143: Security Markdown Documentation Updates** (Target: `SECURITY.md`)
-- [ ] **Step 144: Rate Limiter Integration Tests** (Target: `backend/tests/unit/test_rate_limiter.py`)
+- [x] **Step 144: Rate Limiter Integration Tests** (Target: `backend/tests/unit/test_rate_limiter.py`)
 
 ## Milestone 13: Telemetry Observability & Logging
 - [x] **Step 145: Prometheus Metrics Client Configuration** (Target: `backend/app/main.py`)
