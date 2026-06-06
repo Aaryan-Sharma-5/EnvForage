@@ -213,3 +213,15 @@
 - [x] **Step 176: K8s Ingress Controller Configuration** (Target: `helm/envforge/templates/ingress.yaml`)
 - [x] **Step 177: Redis StatefulSet Manifest** (Target: `helm/envforge/templates/redis-statefulset.yaml`)
 - [x] **Step 178: Postgres StatefulSet Manifest** (Target: `helm/envforge/templates/postgres-statefulset.yaml`)
+
+## Milestone 16: Security Hardening & Penetration Testing
+- [x] **Step 179: Content Security Policy (CSP) Headers Middleware** (Target: `backend/app/middleware/security_headers.py`)
+- [x] **Step 180: Advanced JWT Validation & Blacklisting** (Target: `backend/app/security/jwt_validation.py`)
+- [x] **Step 181: Dependency Vulnerability Scanning Setup** (Target: `.github/workflows/security-scan.yml`)
+- [ ] **Step 182: SQL Injection Protection Middleware** (Target: `backend/app/middleware/sql_sanitizer.py`)
+- [ ] **Step 183: React XSS Protection Hooks** (Target: `frontend/src/hooks/useXSSProtection.tsx`)
+- [ ] **Step 184: Audit Logging Architecture** (Target: `backend/app/services/audit_logger.py`)
+- [ ] **Step 185: Secrets Management & Strict Validation** (Target: `backend/app/core/secrets_validation.py`)
+- [ ] **Step 186: Two-Factor Authentication (2FA) API Foundation** (Target: `backend/app/api/v1/two_factor.py`)
+- [ ] **Step 187: Role-Based Access Control (RBAC) System** (Target: `backend/app/security/rbac.py`)
+- [ ] **Step 188: Comprehensive Security Unit Tests** (Target: `backend/tests/unit/security/test_all.py`)
