@@ -1,9 +1,11 @@
 import uuid
-from typing import Optional
-from sqlalchemy import Column, String, Boolean, JSON, DateTime, Integer
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class Webhook(Base):
     __tablename__ = "webhooks"

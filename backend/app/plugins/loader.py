@@ -1,10 +1,11 @@
 import importlib
-import pkgutil
 import inspect
-from typing import List, Type
+import pkgutil
+
 from app.plugins.base import EnvForgePlugin
 
-def load_plugins(package_name: str) -> List[Type[EnvForgePlugin]]:
+
+def load_plugins(package_name: str) -> list[type[EnvForgePlugin]]:
     """Dynamically discover and load plugin classes from a package."""
     plugins = []
     package = importlib.import_module(package_name)

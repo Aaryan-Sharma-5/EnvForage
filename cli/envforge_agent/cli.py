@@ -801,12 +801,6 @@ def rollback(quiet: bool) -> None:
     default=None,
     help="Base URL of the EnvForge API.",
 )
-<<<<<<< HEAD
-def troubleshoot(api_url: str | None) -> None:
-    config = load_config()
-    final_api_url = api_url or config.api_url
-    asyncio.run(_troubleshoot(final_api_url))
-=======
 @click.option(
     "--quiet",
     "-q",
@@ -814,9 +808,10 @@ def troubleshoot(api_url: str | None) -> None:
     default=False,
     help="Suppress all logging output and print only the analysis results.",
 )
-def troubleshoot(api_url: str, quiet: bool) -> None:
-    asyncio.run(_troubleshoot(api_url, quiet))
->>>>>>> upstream/main
+def troubleshoot(api_url: str | None, quiet: bool) -> None:
+    config = load_config()
+    final_api_url = api_url or config.api_url
+    asyncio.run(_troubleshoot(final_api_url, quiet))
 
 async def _troubleshoot(api_url: str, quiet: bool) -> None:
     """

@@ -1,6 +1,5 @@
 """Diagnose endpoint -- POST /api/v1/diagnose and POST /api/v1/diagnose/explain."""
 
-import asyncio
 import hashlib
 import json
 import logging
@@ -14,30 +13,20 @@ from app.ai.prompts.system import EXPLAIN_SYSTEM_PROMPT
 from app.ai.providers import get_provider
 from app.ai.providers.base import LLMProviderError
 from app.api.deps import DB
-from app.compatibility.errors import (
-    IncompatibilityError,
-    UnknownVersionError,
-    UnsupportedOSError,
-)
-from app.compatibility.models import OSTarget, PackageConstraint, ResolvedEnvironment
-from app.compatibility.resolver import CompatibilityResolver
+from app.compatibility.models import OSTarget
 from app.core.exceptions import AIServiceUnavailableError, InternalServerError
 from app.middleware.rate_limit import ai_rate_limit
 from app.models.ai_session import AIAuditLog
 from app.models.diagnostic import DiagnosticReport
-from app.models.profile import EnvironmentProfile
 from app.schemas.ai import DiagnoseExplainResponse
 from app.schemas.diagnostic import (
-    CompatibilityIssue,
     DiagnoseResponse,
+    DiagnoseTaskStatus,
     DiagnosticReportSchema,
     TaskResponse,
-    DiagnoseTaskStatus,
 )
-from app.services.profile_service import get_all_active_profiles
 from app.templates.safety import SafetyViolationError, validate_rendered_output
 from app.worker import run_diagnose_task
-from celery.result import AsyncResult
 
 logger = logging.getLogger(__name__)
 

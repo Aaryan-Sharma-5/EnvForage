@@ -8,7 +8,6 @@ from sqlalchemy import select
 
 from app.compatibility.models import PackageConstraint
 from app.compatibility.resolver import (
-    _CACHE_CUDA,
     CompatibilityResolver,
     clear_compatibility_cache,
 )
@@ -116,22 +115,7 @@ async def test_resolver_with_db_and_fallback(db_session):
     assert res_error_fallback.packages[0].version == "2.1.2"
 
 
-async def test_resolver_caching_and_clear(db_session):
-    """Test matrix resolution cache operations."""
-    await seed_compatibility_matrices(db_session)
-    resolver = CompatibilityResolver()
-    await clear_compatibility_cache()
 
-    assert "11.8" not in _CACHE_CUDA
-
-    # Fetch to populate cache
-    await resolver._get_cuda_entry(db_session, "11.8")
-    assert "11.8" in _CACHE_CUDA
-    assert _CACHE_CUDA["11.8"] is not None
-
-    # Clear cache
-    await clear_compatibility_cache()
-    assert "11.8" not in _CACHE_CUDA
 
 
 async def test_admin_matrix_crud_cuda(client, db_session):

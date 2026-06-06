@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
+
 
 class EnvForgePlugin(ABC):
     @property
@@ -20,6 +21,6 @@ class EnvForgePlugin(ABC):
         pass
 
     @abstractmethod
-    async def handle_event(self, event_name: str, payload: Dict[str, Any]) -> None:
+    async def handle_event(self, event_name: str, payload: dict[str, Any]) -> None:
         """Handle dispatched events"""
         pass

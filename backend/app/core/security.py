@@ -1,5 +1,6 @@
-import hmac
 import hashlib
+import hmac
+
 
 def generate_hmac_signature(secret: str, payload: str) -> str:
     """Generate an HMAC-SHA256 signature for the given payload using the secret."""
