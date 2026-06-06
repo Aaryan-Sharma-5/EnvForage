@@ -8,8 +8,8 @@ export interface PackageDef {
 export interface Profile {
 	slug: string;
 	name: string;
-	description: string;
-	tags: string[];
+	description: string | null;
+	tags: string[] | null;
 	os_support: string[];
 	cuda_required: boolean;
 	python_versions: string[];

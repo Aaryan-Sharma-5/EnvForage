@@ -15,6 +15,7 @@ import sys
 import platform
 from pathlib import Path
 import asyncio
+import urllib.parse
 
 import click
 import asyncio
@@ -28,6 +29,7 @@ from rich import box
 from envforge_agent import __version__
 from envforge_agent.report import ReportBuilder
 from envforge_agent.schemas import DiagnosticReport
+from envforge_agent.detectors import detect_wsl_gpu_passthrough
 
 from envforge_agent.utils import _map_os_to_target, _extract_python_version
 from envforge_agent.audit import audit_command
@@ -111,10 +113,10 @@ def cli(ctx: click.Context, no_color: bool) -> None:
     "--format",
     "-f",
     "output_format",
-    type=click.Choice(["json", "yaml"], case_sensitive=False),
+    type=click.Choice(["json", "yaml", "markdown"], case_sensitive=False),
     default="json",
     show_default=True,
-    help="Output format for the diagnostic report (json, yaml).",
+    help="Output format for the diagnostic report (json, yaml, markdown).",
 )
 @click.option(
     "--timeout", "-t",
@@ -125,11 +127,11 @@ def cli(ctx: click.Context, no_color: bool) -> None:
 def diagnose(output: str | None, send: bool, api_url: str | None, quiet: bool, sarif: bool, timeout: int | None, output_format: str = "json") -> None:
     config = load_config()
     final_api_url = api_url or config.api_url
+    if final_api_url and "#" in final_api_url:
+        final_api_url = urllib.parse.urldefrag(final_api_url).url.strip()
     final_timeout = timeout or config.timeout
     asyncio.run(_diagnose(output, send, final_api_url, quiet, sarif, final_timeout, output_format))
 
-def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int, output_format: str) -> None:
-    asyncio.run(_diagnose(output, send, api_url, quiet, sarif, timeout, output_format))
 
 async def _diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int, output_format: str) -> None:
     """
@@ -145,6 +147,13 @@ async def _diagnose(output: str | None, send: bool, api_url: str, quiet: bool, s
         )
 
     report = ReportBuilder(timeout=timeout).build()
+
+    if report.os.wsl_version == "WSL2":
+        wsl_gpu_ok, wsl_gpu_issues = detect_wsl_gpu_passthrough(timeout=timeout)
+        if not wsl_gpu_ok and not quiet:
+            click.echo("[!] GPU passthrough unavailable in WSL2. Falling back to CPU environment recommendation.")
+            for issue in wsl_gpu_issues:
+                click.echo(f"  - {issue}")
 
     if not quiet:
         _print_report_summary(report)
@@ -164,6 +173,8 @@ async def _diagnose(output: str | None, send: bool, api_url: str, quiet: bool, s
     if output_format == "yaml":
         import yaml
         report_output = yaml.dump(report.model_dump(mode='json'), default_flow_style=False, sort_keys=False)
+    elif output_format == "markdown":
+        report_output = report.to_markdown()
     else:
         report_output = report.to_json(indent=2)
 

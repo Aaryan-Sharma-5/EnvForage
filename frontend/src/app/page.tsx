@@ -1,6 +1,6 @@
 "use client";
 
-import { Variants, motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
 	CheckCircle2,
 	Package,
@@ -228,7 +228,7 @@ export default function HomePage() {
 							Everything you need to eliminate dependency hell and focus on building AI.
 						</p>
 
-						<motion.div 
+						<motion.div
 							variants={containerVariants}
 							initial="hidden"
 							whileInView="show"
@@ -298,6 +298,8 @@ export default function HomePage() {
 						>
 							Get Started
 						</Link>
+						
+						
 					</div>
 				</section>
 			</div>

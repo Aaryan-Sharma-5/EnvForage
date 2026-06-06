@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     # Format: redis://:password@host:port/db  or  redis://host:port/db
     redis_url: str | None = None
     resolver_cache_ttl_seconds: int = 86400
+    run_sync_loop: bool = True
 
     # ── CORS ─────────────────────────────────────────────────
     allowed_origins: str = "http://localhost:3000"
@@ -77,11 +78,23 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_secret_key(self) -> "Settings":
+        """Enforce a strong SECRET_KEY in all non-development environments.
+
+        The default value (DEV_SECRET_KEY) is committed to the public repository.
+        Any deployment that omits SECRET_KEY in staging or production will silently
+        sign JWTs with this known-public string, allowing trivial token forgery.
+
+        Raises:
+            ValueError: When the insecure default is used outside development.
         """
-        Validate that the default development secret key is not used in production.
-        """
-        if self.environment == "production" and self.secret_key == DEV_SECRET_KEY:
-            raise ValueError("Production environment requires a strong SECRET_KEY.")
+        if self.secret_key == DEV_SECRET_KEY and self.environment != "development":
+            raise ValueError(
+                f"A strong SECRET_KEY is required when environment='{self.environment}'. "
+                "Set the SECRET_KEY environment variable to a cryptographically random "
+                "value before deploying. "
+                "The default key ('dev-secret-key-change-in-production') is committed "
+                "to the public repository and must never be used outside local development."
+            )
         return self
 
 

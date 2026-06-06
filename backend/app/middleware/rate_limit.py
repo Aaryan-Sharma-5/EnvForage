@@ -33,6 +33,8 @@ from collections import defaultdict
 from typing import Any
 
 from fastapi import HTTPException, Request
+from redis.exceptions import ConnectionError as RedisConnError
+from redis.exceptions import TimeoutError as RedisTimeout
 
 from app.config import get_settings
 
@@ -259,6 +261,11 @@ def _make_backend() -> RateLimitBackend:
 
 _backend = _make_backend()
 
+# Fallback used when RedisBackend raises a connection error at request time.
+# A single shared instance preserves the sliding-window state across all
+# requests that arrive while Redis is degraded.
+_fallback_backend = InMemoryBackend()
+
 
 # ── Rate Limiter ──────────────────────────────────────────────────────────────
 
@@ -291,11 +298,24 @@ class RateLimiter:
         client_ip = self._get_client_ip(request)
         key = f"rate_limit:{request.url.path}:{client_ip}"
 
-        allowed, info = await self.backend.is_allowed(
-            key,
-            self.max_requests,
-            self.window_seconds,
-        )
+        try:
+            allowed, info = await self.backend.is_allowed(
+                key, self.max_requests, self.window_seconds,
+            )
+        except Exception as exc:
+            if isinstance(exc, (RedisConnError, RedisTimeout)):
+                logger.warning(
+                    "Redis connection error during rate limit check for %s on %s "
+                    "— falling back to in-memory backend. Error: %s",
+                    client_ip, request.url.path, exc,
+                )
+                allowed, info = await _fallback_backend.is_allowed(
+                    key, self.max_requests, self.window_seconds,
+                )
+            else:
+                # Non-Redis exception (programming bug, etc.) — re-raise so it
+                # is not silently swallowed.
+                raise
 
         if not allowed:
             logger.warning(

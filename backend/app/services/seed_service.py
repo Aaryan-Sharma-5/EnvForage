@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal
 from app.models.profile import EnvironmentProfile, ProfilePackage
 from app.schemas.seed_profile import ProfileSeedSchema
+from app.services.sync_service import seed_compatibility_matrices
 
 SEEDS_DIR = Path(__file__).parent.parent.parent / "seeds"
 
@@ -143,6 +144,7 @@ async def seed_profiles(db: AsyncSession) -> None:
 async def run_all_seeds() -> None:
     async with AsyncSessionLocal() as db:
         print("[seed] Running database seeds...")
+        await seed_compatibility_matrices(db)
         await seed_profiles(db)
         print("[seed] Done.")
 

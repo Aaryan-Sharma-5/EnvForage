@@ -6,7 +6,7 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 
@@ -44,6 +44,9 @@ router = APIRouter()
 # Kept intentionally small so each page fetch is cheap; the while-loop below
 # accumulates all pages before running the resolver.
 _PROFILE_PAGE_SIZE = 100
+
+# Limit concurrency to 5 threads globally across all requests to avoid memory spikes under heavy load
+_RESOLVER_SEMAPHORE = asyncio.Semaphore(5)
 
 
 @router.post(
@@ -94,7 +97,7 @@ async def diagnose(
         if report.active_python
         else None,
         driver_version=report.gpus[0].driver_version if report.gpus else None,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC),
     )
     db.add(db_report)
     await db.flush()
@@ -147,21 +150,22 @@ async def diagnose(
             )
             for package in sorted(profile.packages, key=lambda item: item.install_order)
         ]
-        return await asyncio.to_thread(
-            resolver.resolve,
-            packages=packages,
-            python_version=(
-                report.active_python.version if report.active_python else None
+        async with _RESOLVER_SEMAPHORE:
+            return await resolver.resolve(
+                packages=packages,
+                python_version=(
+                    report.active_python.version if report.active_python else None
+                )
+                or "3.10",
+                cuda_version=report.cuda.version if report.cuda else None,
+                rocm_version=report.rocm.version if report.rocm else None,
+                target_os=target_os,
+                profile_slug=profile.slug,
+                os_support=profile.os_support,
+                cuda_required=profile.cuda_required,
+                rocm_required=getattr(profile, "rocm_required", False),
+                db=db,
             )
-            or "3.10",
-            cuda_version=report.cuda.version if report.cuda else None,
-            rocm_version=report.rocm.version if report.rocm else None,
-            target_os=target_os,
-            profile_slug=profile.slug,
-            os_support=profile.os_support,
-            cuda_required=profile.cuda_required,
-            rocm_required=getattr(profile, "rocm_required", False),
-        )
 
     results = await asyncio.gather(
         *[_resolve(p) for p in all_profiles],
@@ -307,7 +311,7 @@ def _log_explain_audit(
             provider=provider,
             tokens_used=tokens_used,
             latency_ms=latency_ms,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         db.add(log)
     except Exception as exc:

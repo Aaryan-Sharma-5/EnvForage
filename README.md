@@ -40,7 +40,7 @@ A massive thank you to all the developers who have contributed code, resolved is
 ## 🎯 Project Overview
 
 **Deterministic logic > AI generation.**
-Because scripts affect real systems, EnvForge relies on a strictly deterministic **Compatibility Engine** to resolve versions. It never guesses package versions or writes destructive shell commands. 
+Because scripts affect real systems, EnvForge relies on a strictly deterministic **Compatibility Engine** to resolve versions. It never guesses package versions or writes destructive shell commands.
 
 EnvForge helps users:
 * Generate environment setup scripts (`setup.sh`, `setup.ps1`, `Dockerfile`)
@@ -143,12 +143,35 @@ pip install envforge-agent
 envforge diagnose
 ```
 
+
 ### 2. Run the Backend (Docker)
 ```bash
 git clone https://github.com/rishabh0510rishabh/EnvForage.git
 cd EnvForage
 docker-compose up -d
 ```
+
+### 3. Run the Backend (Kubernetes)
+**Prerequisites:**
+- [Helm 3+](https://helm.sh/docs/intro/install/)
+- A running Kubernetes cluster (Docker Desktop, minikube, or cloud)
+- NGINX Ingress Controller (only if `ingress.enabled=true`):
+```bash
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.0/deploy/static/provider/cloud/deploy.yaml
+```
+
+```bash
+helm install envforge ./helm/envforge
+
+# Enable ingress (optional)
+helm install envforge ./helm/envforge \
+  --set ingress.enabled=true \
+  --set ingress.host=api.yourdomain.com
+
+kubectl port-forward svc/envforge 8000:8000
+kubectl port-forward svc/envforge-frontend 3000:3000
+```
+
 The API is now running at `http://localhost:8000`.
 
 ### 3. Generate a Script
@@ -173,6 +196,7 @@ curl -X POST http://localhost:8000/api/v1/scripts/generate \
 | [CLI_REFERENCE.md](./docs/CLI_REFERENCE.md) | Commands for `envforge diagnose`, `verify`, and `fix` |
 | [API_DESIGN.md](./docs/API_DESIGN.md) | REST endpoints, schemas, and validation rules |
 | [PROFILE_SPEC.md](./docs/PROFILE_SPEC.md) | How to build and define new ML profiles |
+| [TASKS.md](./TASKS.md) | The master implementation blueprint |
 
 ---
 

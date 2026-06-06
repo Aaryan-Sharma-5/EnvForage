@@ -1,10 +1,16 @@
 """Tests for the in-memory rate limiter."""
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import HTTPException
 
 from app.middleware.rate_limit import InMemoryBackend, RateLimiter
+
+# Skip the entire Redis fallback test class if the redis package is not installed.
+redis_exceptions = pytest.importorskip("redis.exceptions", reason="redis package not installed")
+RedisConnError = redis_exceptions.ConnectionError
+RedisTimeout = redis_exceptions.TimeoutError
 
 
 @pytest.fixture
@@ -136,3 +142,67 @@ class TestClientIPExtraction:
         limiter = RateLimiter()
         request = self._make_request("172.16.0.1", "203.0.113.10, 10.0.0.2")
         assert limiter._get_client_ip(request) == "203.0.113.10"
+
+
+class TestRateLimiterRedisFallback:
+    """Verify RateLimiter gracefully falls back to InMemoryBackend on Redis errors."""
+
+    def _make_request(self, path: str = "/api/v1/troubleshoot", peer: str = "1.2.3.4") -> MagicMock:
+        request = MagicMock()
+        request.client.host = peer
+        request.url.path = path
+        request.headers.get = lambda key, default=None: default
+        return request
+
+    @pytest.mark.asyncio
+    async def test_falls_back_on_connection_error(self):
+        """ConnectionError from RedisBackend must not propagate — fallback is used."""
+        mock_redis_backend = MagicMock()
+        mock_redis_backend.is_allowed = AsyncMock(side_effect=RedisConnError("unreachable"))
+
+        limiter = RateLimiter(max_requests=10, window_seconds=60, backend=mock_redis_backend)
+        request = self._make_request()
+
+        # Should NOT raise — fallback handles it
+        await limiter(request)
+
+    @pytest.mark.asyncio
+    async def test_falls_back_on_timeout_error(self):
+        """TimeoutError from RedisBackend must not propagate — fallback is used."""
+        mock_redis_backend = MagicMock()
+        mock_redis_backend.is_allowed = AsyncMock(side_effect=RedisTimeout("timed out"))
+
+        limiter = RateLimiter(max_requests=10, window_seconds=60, backend=mock_redis_backend)
+        request = self._make_request()
+
+        # Should NOT raise — fallback handles it
+        await limiter(request)
+
+    @pytest.mark.asyncio
+    async def test_reraises_non_redis_exceptions(self):
+        """Non-Redis exceptions (e.g. bugs) must not be silently swallowed."""
+        mock_backend = MagicMock()
+        mock_backend.is_allowed = AsyncMock(side_effect=ValueError("programming bug"))
+
+        limiter = RateLimiter(max_requests=10, window_seconds=60, backend=mock_backend)
+        request = self._make_request()
+
+        with pytest.raises(ValueError, match="programming bug"):
+            await limiter(request)
+
+    @pytest.mark.asyncio
+    async def test_fallback_allows_request_through(self):
+        """After a Redis failure the request must be allowed, not rejected with 429."""
+        mock_redis_backend = MagicMock()
+        mock_redis_backend.is_allowed = AsyncMock(side_effect=RedisConnError("down"))
+
+        # Reset the module-level fallback backend so this test is isolated
+        with patch("app.middleware.rate_limit._fallback_backend", InMemoryBackend()):
+            limiter = RateLimiter(max_requests=10, window_seconds=60, backend=mock_redis_backend)
+            request = self._make_request()
+
+            # First call should succeed (not raise HTTPException(429))
+            try:
+                await limiter(request)
+            except HTTPException as exc:
+                pytest.fail(f"Request was rate-limited after Redis fallback: {exc.detail}")

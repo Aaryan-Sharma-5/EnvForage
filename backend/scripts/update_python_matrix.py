@@ -21,16 +21,59 @@ SUPPORTED_PYTHONS = ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
 
 def fetch_pypi_python_bounds(package: str, version: str):
-    """Fetch required python bounds from PyPI."""
-    url = f"https://pypi.org/pypi/{package}/{version}/json"
-    print(f"Fetching {url}...")
-    r = httpx.get(url)
+    """Fetch required python bounds from PyPI, using a local file cache with a 12-hour TTL."""
+    import os
+    import time
 
-    if r.status_code != 200:
-        print(f"  [WARN] Failed to fetch {package} {version} (Status {r.status_code})")
-        return None
+    # Store cache under ~/.envforge/cache per issue #386 spec
+    cache_dir = Path(os.path.expanduser("~/.envforge/cache"))
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
-    data = r.json()
+    safe_pkg = "".join(c for c in package if c.isalnum() or c in ".-_")
+    safe_ver = "".join(c for c in version if c.isalnum() or c in ".-_")
+    cache_file = cache_dir / f"{safe_pkg}_{safe_ver}.json"
+
+    data = None
+    cache_valid = False
+
+    # Check if cache file exists and is less than 12 hours (43200 seconds) old
+    if cache_file.exists():
+        try:
+            mtime = cache_file.stat().st_mtime
+            if time.time() - mtime < 43200:
+                cache_valid = True
+        except Exception as e:
+            print(f"  [WARN] Failed to read cache file metadata: {e}")
+
+    if cache_valid:
+        try:
+            with open(cache_file, encoding="utf-8") as f:
+                data = json.load(f)
+            print(f"  [Cache Hit] Loaded {package} {version} from local cache.")
+        except Exception as e:
+            print(f"  [WARN] Failed to read cache: {e}")
+
+    if not data:
+        url = f"https://pypi.org/pypi/{package}/{version}/json"
+        print(f"  [Cache Miss] Fetching {url} from PyPI...")
+        # Added 10s timeout to prevent hanging connections
+        r = httpx.get(url, timeout=10)
+
+        if r.status_code != 200:
+            print(
+                f"  [WARN] Failed to fetch {package} {version} (Status {r.status_code})"
+            )
+            return None
+
+        data = r.json()
+
+        # Save JSON to cache file
+        try:
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            print(f"  [WARN] Failed to write cache: {e}")
+
     requires_python = data.get("info", {}).get("requires_python")
 
     if not requires_python:

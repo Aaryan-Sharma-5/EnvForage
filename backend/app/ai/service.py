@@ -15,7 +15,7 @@ import logging
 import time
 import uuid
 from collections.abc import AsyncIterator
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -340,7 +340,7 @@ class AITroubleshootService:
                     id=uuid.UUID(session_id),
                     provider=provider_name,
                     model=model_name,
-                    created_at=datetime.utcnow(),
+                    created_at=datetime.now(UTC),
                 )
 
                 db.add(db_session)
@@ -358,7 +358,7 @@ class AITroubleshootService:
                             fix.safe_commands if fix.safe_commands else None,
                         ),
                         template_id=fix.repair_template_id,
-                        created_at=datetime.utcnow(),
+                        created_at=datetime.now(UTC),
                     )
                     db.add(db_suggestion)
                 return
@@ -413,7 +413,7 @@ class AITroubleshootService:
                 provider=provider,
                 tokens_used=tokens_used,
                 latency_ms=latency_ms,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(UTC),
             )
             db.add(log)
         except Exception as exc:
