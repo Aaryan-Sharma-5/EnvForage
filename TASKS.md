@@ -42,7 +42,7 @@
 - [x] **Step 29: API Schema Markdown Guide** (Target: `frontend/src/app/docs/api/page.mdx`)
 - [x] **Step 30: MDX Code Syntax Highlighting** (Target: `frontend/src/components/mdx/CodeBlock.tsx`)
 - [x] **Step 31: Dynamic Anchor Links** (Target: `frontend/src/components/mdx/Heading.tsx`)
-- [ ] **Step 32: Global Search Modal UI** (Target: `frontend/src/components/SearchModal.tsx`)
+- [x] **Step 32: Global Search Modal UI** (Target: `frontend/src/components/SearchModal.tsx`)
 - [ ] **Step 33: Client-Side Search Indexer** (Target: `frontend/src/lib/search.ts`)
 - [ ] **Step 34: Documentation Pagination** (Target: `frontend/src/components/DocsPagination.tsx`)
 - [ ] **Step 35: Version Selector Dropdown** (Target: `frontend/src/app/docs/layout.tsx`)
