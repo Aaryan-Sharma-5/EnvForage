@@ -157,7 +157,7 @@
 - [x] **Step 128: Sample Audit Plugin Implementation** (Target: `backend/app/plugins/sample_audit.py`)
 - [x] **Step 129: Plugin Activation API Endpoint** (Target: `backend/app/api/v1/plugins.py`)
 - [x] **Step 130: Frontend Webhook Dashboard UI** (Target: `frontend/src/app/settings/webhooks/page.tsx`)
-- [ ] **Step 131: Webhook Delivery Logs View** (Target: `frontend/src/app/settings/webhooks/logs.tsx`)
+- [x] **Step 131: Webhook Delivery Logs View** (Target: `frontend/src/app/settings/webhooks/logs.tsx`)
 - [x] **Step 132: Webhook Architecture Unit Tests** (Target: `backend/tests/integration/test_webhooks.py`)
 
 ## Milestone 12: Security Hardening & Rate Limiting
