@@ -36,6 +36,10 @@ function WizardContent() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}, [step]);
+
+	useEffect(() => {
 		async function fetchProfiles() {
 			try {
 				const data = await api.getProfiles();
