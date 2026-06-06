@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Implementation of Frontend Webhook Dashboard UI
  * This file handles the primary logic and UI components.
