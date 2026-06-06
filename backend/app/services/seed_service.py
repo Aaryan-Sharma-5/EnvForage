@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
 from app.models.profile import EnvironmentProfile, ProfilePackage
-from app.schemas.seed_profile import ProfileSeedSchema
+from app.schemas.seed_profile import ProfileSeedSchema, validate_logical_consistency
 from app.services.sync_service import seed_compatibility_matrices
 
 SEEDS_DIR = Path(__file__).parent.parent.parent / "seeds"
@@ -87,6 +87,17 @@ async def seed_profiles(db: AsyncSession) -> None:
                 profile_ref,
                 _format_validation_errors(exc),
             )
+            invalid += 1
+            continue
+
+        logical_errors = validate_logical_consistency(profile_data)
+        if logical_errors:
+            for err in logical_errors:
+                logger.warning(
+                    "Skipping profile '%s' (logical error): %s",
+                    profile_ref,
+                    err,
+                )
             invalid += 1
             continue
 

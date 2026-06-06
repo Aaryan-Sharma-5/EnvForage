@@ -20,6 +20,14 @@ from app.services import profile_service, script_service
 router = APIRouter()
 
 
+def _stream_zip(buffer: io.BytesIO) -> Iterator[bytes]:
+    """Stream ZIP contents and ensure buffer cleanup."""
+    try:
+        yield buffer.getvalue()
+    finally:
+        buffer.close()
+
+
 @router.post(
     "/scripts/generate",
     response_model=GenerationResponse,
@@ -37,13 +45,6 @@ router = APIRouter()
         422: {"description": "Request validation error"},
     },
 )
-def _stream_zip(buffer: io.BytesIO) -> Iterator[bytes]:
-    """Stream ZIP contents and ensure buffer cleanup."""
-    try:
-        yield buffer.getvalue()
-    finally:
-        buffer.close()
-
 
 async def generate_scripts(
     request: GenerationRequest,
