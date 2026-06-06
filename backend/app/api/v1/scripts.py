@@ -46,7 +46,6 @@ def _stream_zip(buffer: io.BytesIO) -> Iterator[bytes]:
     },
 )
 
-
 async def generate_scripts(
     request: GenerationRequest,
     db: DB,
