@@ -236,7 +236,9 @@ def _validate_bash_ast(content: str, template_name: str = "") -> None:
                                                         ):
                                                             is_whitelisted = True
                                                             break
-                                                    except Exception:
+                                                    except Exception as e:
+                                                    import logging
+                                                    logging.error(f"Safety parse error: {e}")
                                                         pass
                             if not is_whitelisted:
                                 violations.append(
