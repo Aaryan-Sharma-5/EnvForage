@@ -267,7 +267,9 @@ async def get_cuda_version(
                 "notes": entry.notes or "",
                 "source_url": entry.source_url or "",
             }
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"CUDA version lookup: {e}")
         pass
 
     # Fallback to static
