@@ -153,7 +153,9 @@ async def get_cuda_matrix(db: DB) -> dict[str, Any]:
     try:
         res = await db.execute(select(CUDAMatrixDBModel))
         cuda_entries = res.scalars().all()
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"CUDA Matrix DB fetch: {e}")
         pass
 
     if cuda_entries:
