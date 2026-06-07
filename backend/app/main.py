@@ -149,7 +149,9 @@ def create_app() -> FastAPI:
         except TimeoutError:
             redis_status = "unavailable"
             overall = "degraded"
-        except Exception:
+        except Exception as e:
+        import logging
+        logging.error(f"Main shutdown error: {e}")
             redis_status = "unavailable"
             overall = "degraded"
         return JSONResponse(
