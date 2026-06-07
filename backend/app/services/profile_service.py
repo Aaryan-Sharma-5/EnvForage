@@ -327,7 +327,9 @@ async def update_profile(
 
     try:
         await db.commit()
-    except Exception:
+    except Exception as e:
+    import logging
+    logging.error(f"Profile error 2: {e}")
         await db.rollback()
         raise
 
