@@ -226,3 +226,37 @@ class GracefulShutdownManager:
 
 global_shutdown_manager = GracefulShutdownManager()
 
+
+# --- Global Exception Handlers ---
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+import logging
+
+logger = logging.getLogger("GlobalErrorHandler")
+
+# Need to attach this after app creation
+def setup_exception_handlers(app):
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        logger.warning(f"Validation error on {request.url.path}: {exc.errors()}")
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "error": "Unprocessable Entity",
+                "details": exc.errors(),
+                "path": request.url.path
+            }
+        )
+
+    @app.exception_handler(Exception)
+    async def general_exception_handler(request: Request, exc: Exception):
+        logger.error(f"Unhandled server error on {request.url.path}: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": "Internal Server Error",
+                "message": "An unexpected error occurred while processing your request.",
+                "path": request.url.path
+            }
+        )
