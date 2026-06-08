@@ -257,7 +257,9 @@ async def create_profile(
     try:
         await db.commit()
     except Exception as e:
-        logger.error("Profile service error: %s", e)
+        import logging
+
+        logging.error(f"Profile service error: {e}")
         await db.rollback()
         raise
 
@@ -270,22 +272,30 @@ async def create_profile(
     return profile
 
 
-async def delete_profile(
-    db: AsyncSession,
-    slug: str,
-) -> bool:
-    """Soft delete a profile by slug. Returns True if deleted, False if not found."""
-    profile = await get_profile_by_slug(db, slug)
+async def delete_profile(db: AsyncSession, slug: str) -> bool:
+    # Fetch ORM object directly, NOT from cache
+    result = await db.execute(
+        select(EnvironmentProfile)
+        .where(EnvironmentProfile.slug == slug)
+        .where(EnvironmentProfile.deleted_at.is_(None))
+        .options(selectinload(EnvironmentProfile.packages))
+    )
+    profile = result.scalar_one_or_none()
     if not profile:
         return False
 
     profile.deleted_at = datetime.now(UTC)
     profile.status = "DELETED"
 
+    for pkg in profile.packages:
+        pkg.deleted_at = datetime.now(UTC)
+
     try:
         await db.commit()
     except Exception as e:
-        logger.error("Profile error 1: %s", e)
+        import logging
+
+        logging.error(f"Profile error 1: {e}")
         await db.rollback()
         raise
 
@@ -327,7 +337,9 @@ async def update_profile(
     try:
         await db.commit()
     except Exception as e:
-        logger.error("Profile error 2: %s", e)
+        import logging
+
+        logging.error(f"Profile error 2: {e}")
         await db.rollback()
         raise
 
