@@ -3,7 +3,7 @@
 import logging
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from app.ai.models import TroubleshootRequest
@@ -37,6 +37,7 @@ _service = AITroubleshootService()
 )
 async def troubleshoot(
     request: TroubleshootRequest,
+    http_request: Request,
     db: DB,
     _rate_limit: None = Depends(ai_rate_limit),
 ) -> StreamingResponse:
@@ -62,8 +63,13 @@ async def troubleshoot(
                     '"message":"Internal streaming error."}\n\n'
                 )
 
+        stream: AsyncIterator[str] = event_generator()
+        tracker = getattr(http_request.app.state, "stream_tracker", None)
+        if tracker is not None:
+            stream = tracker.track(stream)
+
         return StreamingResponse(
-            event_generator(),
+            stream,
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
