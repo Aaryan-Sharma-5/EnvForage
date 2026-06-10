@@ -452,6 +452,19 @@ a:hover {
 }
 
 /* Footer specific */
+
+.footer-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+}
+
+.footer-link:hover {
+  color: #22c55e;
+  transform: translateX(4px);
+}
+
 .footer-grid {
   display: flex;
   flex-wrap: wrap;

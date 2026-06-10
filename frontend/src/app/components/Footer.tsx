@@ -91,40 +91,16 @@ export default function Footer() {
 								gap: "0.8rem",
 							}}
 						>
-							<Link
-								href="/profiles"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/profiles" className="footer-link">
 								Profiles
 							</Link>
-							<Link
-								href="/diagnose"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/diagnose" className="footer-link">
 								Diagnose
 							</Link>
-							<Link
-								href="/troubleshoot"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/troubleshoot" className="footer-link">
 								Troubleshoot
 							</Link>
-							<Link
-								href="/dependencies"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/dependencies" className="footer-link">
 								Dependencies
 							</Link>
 						</div>
@@ -148,40 +124,16 @@ export default function Footer() {
 								gap: "0.8rem",
 							}}
 						>
-							<Link
-								href="/coming-soon"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/coming-soon" className="footer-link">
 								Documentation
 							</Link>
-							<Link
-								href="/coming-soon"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/coming-soon" className="footer-link">
 								Guides
 							</Link>
-							<Link
-								href="/coming-soon"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/coming-soon" className="footer-link">
 								API Reference
 							</Link>
-							<Link
-								href="/coming-soon"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/coming-soon" className="footer-link">
 								FAQ
 							</Link>
 						</div>
@@ -208,39 +160,24 @@ export default function Footer() {
 							<Link
 								href="https://discord.gg/N2GKNRzDV"
 								target="_blank"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
+								className="footer-link"
 							>
 								Join Discord
 							</Link>
 							<Link
 								href="https://github.com/rishabh0510rishabh/EnvForage"
 								target="_blank"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
+								className="footer-link"
 							>
 								GitHub
 							</Link>
-							<Link
-								href="/coming-soon"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
-							>
+							<Link href="/coming-soon" className="footer-link">
 								Report Issues
 							</Link>
 							<Link
 								href="https://github.com/rishabh0510rishabh/EnvForage/discussions"
 								target="_blank"
-								style={{
-									color: "var(--text-secondary)",
-									textDecoration: "none",
-								}}
+								className="footer-link"
 							>
 								Discussions
 							</Link>
