@@ -23,18 +23,55 @@ export default function FAQPage() {
   ];
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-16">
-      <h1 className="text-4xl font-bold mb-4">Frequently Asked Questions</h1>
-      <p className="text-gray-400 mb-10">
+    <main style={{ maxWidth: "800px", margin: "0 auto", padding: "4rem 2rem" }}>
+      <h1 style={{
+        fontSize: "3rem",
+        fontWeight: 800,
+        marginBottom: "1rem",
+        color: "var(--text-primary)"
+      }}>
+        Frequently Asked Questions
+      </h1>
+      <p style={{
+        color: "var(--text-secondary)",
+        marginBottom: "3rem",
+        fontSize: "1.2rem"
+      }}>
         Everything you need to know about EnvForage.
       </p>
-      <div className="space-y-4">
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         {faqs.map((faq, index) => (
-          <details key={index} className="border border-gray-700 rounded-lg p-4">
-            <summary className="cursor-pointer font-semibold text-lg">
+          <details
+            key={index}
+            style={{
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "8px",
+              padding: "1.25rem 1.5rem",
+              backgroundColor: "var(--bg-secondary)",
+              cursor: "pointer"
+            }}
+          >
+            <summary style={{
+              fontWeight: 600,
+              fontSize: "1.1rem",
+              color: "var(--text-primary)",
+              cursor: "pointer",
+              listStyle: "none",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
               {faq.question}
+              <span style={{ color: "var(--brand-secondary)", fontSize: "1.5rem" }}>+</span>
             </summary>
-            <p className="mt-3 text-gray-400">{faq.answer}</p>
+            <p style={{
+              marginTop: "1rem",
+              color: "var(--text-secondary)",
+              lineHeight: 1.7,
+              fontSize: "1rem"
+            }}>
+              {faq.answer}
+            </p>
           </details>
         ))}
       </div>
