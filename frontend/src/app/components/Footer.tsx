@@ -133,7 +133,7 @@ export default function Footer() {
 							<Link href="/coming-soon" className="footer-link">
 								API Reference
 							</Link>
-							<Link href="/coming-soon" className="footer-link">
+							<Link href="/faq" className="footer-link">
 								FAQ
 							</Link>
 						</div>
