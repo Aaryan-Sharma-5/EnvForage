@@ -51,7 +51,7 @@ def test_production_cors_safeguards():
     """Verify that production guards enforce strong keys and forbid wildcard/default configurations."""
     # Block default dev secret key in Production
     with pytest.raises(
-        ValidationError, match="secret_key cannot be the default development key"
+        ValidationError, match="A strong SECRET_KEY is required"
     ):
         Settings(
             environment="production",
@@ -59,6 +59,7 @@ def test_production_cors_safeguards():
             secret_key=DEV_SECRET_KEY,
             admin_api_key="a" * 32,
             database_url="postgresql+asyncpg://postgres:postgres@db.production.internal:5432/envforge",
+            redis_url="redis://localhost:6379/0",
         )
 
     # Block Wildcard in Production
@@ -71,6 +72,7 @@ def test_production_cors_safeguards():
             secret_key="prod-safe-key-123",
             admin_api_key="a" * 32,
             database_url="postgresql+asyncpg://postgres:postgres@db.production.internal:5432/envforge",
+            redis_url="redis://localhost:6379/0",
         )
 
     # Block default/localhost CORS settings in Production (including 127.0.0.1)
@@ -84,6 +86,7 @@ def test_production_cors_safeguards():
             secret_key="prod-safe-key-123",
             admin_api_key="a" * 32,
             database_url="postgresql+asyncpg://postgres:postgres@db.production.internal:5432/envforge",
+            redis_url="redis://localhost:6379/0",
         )
 
     # Block localhost database URLs in Production
@@ -97,6 +100,7 @@ def test_production_cors_safeguards():
             secret_key="prod-safe-key-123",
             admin_api_key="a" * 32,
             database_url="postgresql+asyncpg://postgres:postgres@localhost:5432/envforge",
+            redis_url="redis://localhost:6379/0",
         )
 
     with pytest.raises(
@@ -109,6 +113,7 @@ def test_production_cors_safeguards():
             secret_key="prod-safe-key-123",
             admin_api_key="a" * 32,
             database_url="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/envforge",
+            redis_url="redis://localhost:6379/0",
         )
 
     # Accept valid production configuration
@@ -118,5 +123,6 @@ def test_production_cors_safeguards():
         secret_key="prod-safe-key-123",
         admin_api_key="a" * 32,
         database_url="postgresql+asyncpg://postgres:postgres@db.production.internal:5432/envforge",
+        redis_url="redis://localhost:6379/0",
     )
     assert prod_config.allowed_origins_list == ["https://myproductionapp.com"]

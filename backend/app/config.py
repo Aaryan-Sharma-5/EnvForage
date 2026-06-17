@@ -61,18 +61,18 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/envforge"
     database_command_timeout_seconds: float = 30.0
 
-@field_validator("database_command_timeout_seconds")
-@classmethod
-def validate_database_command_timeout_seconds(cls, v: float) -> float:
-    if v <= 0:
-        raise ValueError(
-            "database_command_timeout_seconds must be greater than 0"
-        )
-    if v > 300:
-        raise ValueError(
-            "database_command_timeout_seconds must be less than or equal to 300"
-        )
-    return v
+    @field_validator("database_command_timeout_seconds")
+    @classmethod
+    def validate_database_command_timeout_seconds(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError(
+                "database_command_timeout_seconds must be greater than 0"
+            )
+        if v > 300:
+            raise ValueError(
+                "database_command_timeout_seconds must be less than or equal to 300"
+            )
+        return v
 
     # ── Redis ─────────────────────────────────────────────────
     # If set, the rate limiter will use Redis instead of in-memory storage.
@@ -193,7 +193,9 @@ def validate_database_command_timeout_seconds(cls, v: float) -> float:
                     "attackers to bypass limits by distributing requests across workers. "
                     "Configure Redis with format: redis://:password@host:port/db or redis://host:port/db"
                 )
+        return self
 
+    @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
         """Validate settings after initialization.
 
