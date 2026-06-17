@@ -1,17 +1,13 @@
-import time
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+
+from app.middleware.rate_limit import general_rate_limit
 
 router = APIRouter(prefix="/media", tags=["Media"])
 
 # 5MB in bytes
 MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 
-# Simple in-memory rate limiter for demonstration
-RATE_LIMIT_DURATION = 60 # seconds
-RATE_LIMIT_REQUESTS = 5 # max requests per duration
-rate_limit_records: dict[str, list[float]] = {}
 
 async def verify_content_length(request: Request):
     if "content-length" not in request.headers:
@@ -21,25 +17,10 @@ async def verify_content_length(request: Request):
         raise HTTPException(status_code=413, detail="Payload Too Large. Maximum allowed size is 5MB.")
     return content_length
 
-async def rate_limiter(request: Request):
-    client_ip = request.client.host if request.client else "unknown"
-    current_time = time.time()
-
-    if client_ip not in rate_limit_records:
-        rate_limit_records[client_ip] = []
-
-    # Clean up old records
-    rate_limit_records[client_ip] = [t for t in rate_limit_records[client_ip] if current_time - t < RATE_LIMIT_DURATION]
-
-    if len(rate_limit_records[client_ip]) >= RATE_LIMIT_REQUESTS:
-        raise HTTPException(status_code=429, detail="Too Many Requests. Please try again later.")
-
-    rate_limit_records[client_ip].append(current_time)
-    return True
 
 @router.post(
     "/upload",
-    dependencies=[Depends(verify_content_length), Depends(rate_limiter)],
+    dependencies=[Depends(verify_content_length), Depends(general_rate_limit)],
     summary="Upload Media (Issue #803)",
     description="Secure media upload endpoint with strict payload size limitations (5MB) and rate limiting to prevent DoS attacks."
 )

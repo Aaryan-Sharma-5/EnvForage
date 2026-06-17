@@ -41,6 +41,7 @@ from app.core.stream_tracker import StreamTracker
 from app.database import AsyncSessionLocal
 from app.middleware.metrics import setup_metrics
 from app.middleware.payload_size import PayloadSizeLimitMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.services.cleanup_service import run_cleanup
 from app.services.sync_service import matrix_sync_loop
 
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(PayloadSizeLimitMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
 
     # ── Prometheus Metrics ────────────────────────────────────
     setup_metrics(app)
@@ -199,54 +201,4 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-
-# --- Advanced Application State Manager ---
-
-
-class AppState(enum.Enum):
-    INITIALIZING = "initializing"
-    RUNNING = "running"
-    DEGRADED = "degraded"
-    SHUTTING_DOWN = "shutting_down"
-    TERMINATED = "terminated"
-
-class GracefulShutdownManager:
-    def __init__(self):
-        self.state = AppState.INITIALIZING
-        self.hooks: list[Callable] = []
-        self.start_time = time.time()
-        self.components: dict[str, str] = {}
-
-    def register_hook(self, func: Callable):
-        self.hooks.append(func)
-
-    def register_component(self, name: str, status: str = "ok"):
-        self.components[name] = status
-
-    def transition(self, new_state: AppState):
-        import logging
-        logging.info(f"App State Transition: {self.state.name} -> {new_state.name}")
-        self.state = new_state
-
-    async def execute_shutdown(self):
-        self.transition(AppState.SHUTTING_DOWN)
-        import logging
-
-        for hook in reversed(self.hooks):
-            try:
-                logging.info(f"Executing shutdown hook: {hook.__name__}")
-                import asyncio
-                if asyncio.iscoroutinefunction(hook):
-                    await asyncio.wait_for(hook(), timeout=5.0)
-                else:
-                    hook()
-            except Exception as e:
-                logging.error(f"Shutdown hook {hook.__name__} failed: {e}")
-
-        self.transition(AppState.TERMINATED)
-        logging.info(f"Uptime: {time.time() - self.start_time:.2f} seconds")
-
-global_shutdown_manager = GracefulShutdownManager()
-
 

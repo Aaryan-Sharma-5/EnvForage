@@ -14,10 +14,17 @@ from app.schemas.diagnostic import CompatibilityIssue, DiagnoseResponse
 
 settings = get_settings()
 
+if not settings.redis_url:
+    raise ValueError(
+        "REDIS_URL is not configured. The Celery worker requires Redis "
+        "as both broker and result backend. Set the REDIS_URL environment "
+        "variable (e.g. redis://:password@redis:6379/0)."
+    )
+
 celery_app = Celery(
     "envforage_worker",
-    broker=settings.redis_url or "redis://localhost:6379/0",
-    backend=settings.redis_url or "redis://localhost:6379/0",
+    broker=settings.redis_url,
+    backend=settings.redis_url,
 )
 
 celery_app.conf.update(

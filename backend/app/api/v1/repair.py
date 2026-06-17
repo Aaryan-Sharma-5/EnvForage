@@ -155,7 +155,7 @@ async def generate_repair(
     except SafetyViolationError as exc:
         logger.critical("Repair script safety violation: %s", exc)
         raise HTTPException(
-            status_code=500,
+            status_code=422,
             detail={
                 "error": "SAFETY_VIOLATION",
                 "message": (

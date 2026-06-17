@@ -251,7 +251,7 @@ import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger("ProfileUoW")
+_uow_logger = logging.getLogger("ProfileUoW")
 
 @contextlib.asynccontextmanager
 async def profile_transaction_boundary(db: AsyncSession):
@@ -263,40 +263,19 @@ async def profile_transaction_boundary(db: AsyncSession):
     try:
         # Start a nested transaction (SAVEPOINT) if supported
         async with db.begin_nested() as nested:
-            logger.debug("Entering profile transaction boundary")
+            _uow_logger.debug("Entering profile transaction boundary")
             yield nested
             # Implicitly commits the nested transaction
 
     except SQLAlchemyError as e:
-        logger.error(f"Transaction aborted due to DB error: {e}")
+        _uow_logger.error(f"Transaction aborted due to DB error: {e}")
         # The nested transaction is automatically rolled back
         raise
     except Exception as e:
-        logger.error(f"Transaction aborted due to application error: {e}")
+        _uow_logger.error(f"Transaction aborted due to application error: {e}")
         raise
     finally:
-        logger.debug("Exiting profile transaction boundary")
-
-class ProfileQueryBuilder:
-    """Advanced query builder for dynamic profile filtering."""
-
-    def __init__(self, base_query):
-        self.query = base_query
-
-    def apply_tags(self, tags: list[str] | None):
-        if tags:
-            # Complex tag matching logic would go here
-            pass
-        return self
-
-    def apply_os(self, os_name: str | None):
-        if os_name:
-            # OS filtering logic
-            pass
-        return self
-
-    def build(self):
-        return self.query
+        _uow_logger.debug("Exiting profile transaction boundary")
 
 
 # --- Cursor-Based Pagination Engine ---

@@ -87,5 +87,15 @@ class EmailDispatcher:
         return False
 
     def _render_template(self, template_name: str, context: dict[str, Any]) -> str:
-        # Simulate Jinja2 templating
-        return f"<h1>Email Template: {template_name}</h1><p>Data: {context}</p>"
+        from jinja2 import Environment, select_autoescape
+
+        # Use Jinja2 with autoescape to prevent HTML/XSS injection
+        # from user-controlled context values.
+        env = Environment(autoescape=select_autoescape(["html"]))
+        template = env.from_string(
+            "<h1>{{ template_name }}</h1>"
+            "{% for key, val in data.items() %}"
+            "<p><strong>{{ key }}:</strong> {{ val }}</p>"
+            "{% endfor %}"
+        )
+        return template.render(template_name=template_name, data=context)
