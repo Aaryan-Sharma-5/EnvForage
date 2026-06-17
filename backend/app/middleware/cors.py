@@ -20,7 +20,7 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app,
-        allowed_regexes: list[str] = None,
+        allowed_regexes: list[str] | None = None,
         allow_credentials: bool = True,
         max_age: int = 86400
     ):
@@ -83,10 +83,10 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
             # the browser hides the actual error from the JS client.
             raise e
 
-        headers = MutableHeaders(raw=response.headers.raw)
-        headers["Access-Control-Allow-Origin"] = origin
-        headers["Access-Control-Expose-Headers"] = self.expose_headers
+        response_headers = MutableHeaders(raw=response.headers.raw)
+        response_headers["Access-Control-Allow-Origin"] = origin
+        response_headers["Access-Control-Expose-Headers"] = self.expose_headers
         if self.allow_credentials:
-            headers["Access-Control-Allow-Credentials"] = "true"
+            response_headers["Access-Control-Allow-Credentials"] = "true"
 
         return response

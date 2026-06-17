@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
@@ -61,7 +63,7 @@ async def get_nearby_locations(
     ]
 
     # 3. Precise Distance Calculation on the reduced set
-    results = []
+    results: list[dict[str, Any]] = []
     for loc in bbox_filtered:
         distance = calculate_distance(latitude, longitude, loc.latitude, loc.longitude)
         if distance <= radius_km:

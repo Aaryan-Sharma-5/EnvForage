@@ -1,7 +1,7 @@
 import abc
 import logging
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -58,7 +58,8 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
     async def __aenter__(self) -> 'SQLAlchemyUnitOfWork':
         self.session = self.session_factory()
         # Initialize concrete repositories here passing self.session
-        return super().__aenter__()
+        await super().__aenter__()
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
@@ -87,7 +88,7 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
             await self.session.rollback()
 
 @asynccontextmanager
-async def transaction(session_factory) -> SQLAlchemyUnitOfWork:
+async def transaction(session_factory) -> AsyncIterator[SQLAlchemyUnitOfWork]:
     """
     Syntactic sugar for using the UoW pattern cleanly in FastAPI routes.
 

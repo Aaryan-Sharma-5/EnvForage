@@ -30,7 +30,7 @@ class UserProfileBase(BaseModel):
     birth_date: date | None = None
     website: HttpUrl | None = None
     phone_number: str | None = Field(None, description="E.164 formatted phone number")
-    metadata_tags: list[str] = Field(default_factory=list, max_items=20)
+    metadata_tags: list[str] = Field(default_factory=list, max_length=20)
 
     @field_validator('phone_number')
     @classmethod
@@ -51,7 +51,7 @@ class UserProfileBase(BaseModel):
                 raise ValueError('Invalid birth date.')
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def display_name(self) -> str:
         """Dynamically computes a safe display name based on available fields."""
@@ -61,7 +61,7 @@ class UserProfileBase(BaseModel):
             return self.first_name
         return self.username
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def profile_completeness_score(self) -> int:
         """Calculates profile completion percentage."""
@@ -99,7 +99,7 @@ class UserProfileUpdate(BaseModel):
     first_name: str | None = Field(None, min_length=1, max_length=50)
     last_name: str | None = Field(None, min_length=1, max_length=50)
     website: HttpUrl | None = None
-    metadata_tags: list[str] | None = Field(None, max_items=20)
+    metadata_tags: list[str] | None = Field(None, max_length=20)
     preferences: dict[str, Any] | None = None
 
     @model_validator(mode='after')

@@ -63,7 +63,7 @@ try:
     # Use contextvars to maintain trace IDs across async boundaries
     request_id_ctx = contextvars.ContextVar("request_id", default="-")
 except ImportError:
-    request_id_ctx = None
+    request_id_ctx = None  # type: ignore[assignment]
 
 class JSONLogFormatter(logging.Formatter):
     """
@@ -92,7 +92,7 @@ class JSONLogFormatter(logging.Formatter):
             log_obj["trace_id"] = request_id_ctx.get()
 
         # Handle exceptions deeply
-        if record.exc_info:
+        if record.exc_info and record.exc_info[0] and record.exc_info[1]:
             log_obj["exception"] = {
                 "type": record.exc_info[0].__name__,
                 "message": str(record.exc_info[1]),
@@ -101,7 +101,7 @@ class JSONLogFormatter(logging.Formatter):
 
         # Include arbitrary extra attributes passed via `logger.info("...", extra={"user_id": 123})`
         for key, val in record.__dict__.items():
-            if key not in logging.LogRecord(None, None, "", 0, "", (), None).__dict__:
+            if key not in logging.LogRecord("", 0, "", 0, "", (), None).__dict__:
                 log_obj[key] = val
 
         try:

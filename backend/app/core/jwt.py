@@ -42,7 +42,7 @@ class JWTEngine:
         )
         return pem_private, pem_public
 
-    def create_token(self, subject: str, claims: dict[str, Any] = None, is_refresh: bool = False) -> str:
+    def create_token(self, subject: str, claims: dict[str, Any] | None = None, is_refresh: bool = False) -> str:
         """Generates a signed JWT with standard registered claims (exp, iat, iss, aud, sub)."""
         now = datetime.now(UTC)
 

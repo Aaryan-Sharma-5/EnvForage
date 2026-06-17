@@ -71,7 +71,7 @@ class S3StorageService:
             logger.error(f"Failed to generate S3 presigned URL: {e}")
             return None
 
-    async def generate_presigned_post(self, object_name: str, conditions: list = None, expiration_seconds: int = 3600) -> dict[str, Any] | None:
+    async def generate_presigned_post(self, object_name: str, conditions: list[Any] | None = None, expiration_seconds: int = 3600) -> dict[str, Any] | None:
         """
         Generates a pre-signed POST payload allowing browsers to upload files
         directly to S3 without passing through the backend, bounded by conditions (e.g. file size limits).

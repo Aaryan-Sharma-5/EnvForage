@@ -10,7 +10,7 @@ class VersionedAPIRouter(APIRouter):
     A specialized router that enforces API versioning via headers (Accept-Version)
     or path prefixes, throwing standardized deprecation warnings.
     """
-    def __init__(self, current_version: str = "1.0", deprecated_versions: list[str] = None, *args, **kwargs):
+    def __init__(self, current_version: str = "1.0", deprecated_versions: list[str] | None = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_version = current_version
         self.deprecated_versions = deprecated_versions or []

@@ -55,14 +55,15 @@ async def upload_chunked_file(
 
         # If final chunk, assemble and move
         if x_chunk_number == x_total_chunks:
-            final_path = os.path.join(UPLOAD_DIR, file.filename)
+            filename = file.filename or "uploaded_file"
+            final_path = os.path.join(UPLOAD_DIR, filename)
             os.rename(temp_file_path, final_path)
 
             # Simulate pushing to S3/Blob storage
-            # await s3_client.upload_file(final_path, bucket, file.filename)
+            # await s3_client.upload_file(final_path, bucket, filename)
 
-            logger.info(f"File upload complete: {file.filename}")
-            return {"status": "complete", "filename": file.filename, "url": f"/media/{file.filename}"}
+            logger.info(f"File upload complete: {filename}")
+            return {"status": "complete", "filename": filename, "url": f"/media/{filename}"}
 
         return {"status": "uploading", "chunk": x_chunk_number}
 

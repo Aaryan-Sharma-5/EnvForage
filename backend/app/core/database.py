@@ -24,9 +24,9 @@ class AdvancedBaseMixin:
     """
 
     @declared_attr
-    def __tablename__(self) -> str:
+    def __tablename__(cls) -> Any:
         # Auto-generate table name based on class name (e.g. UserProfile -> user_profiles)
-        name = self.__name__
+        name = cls.__name__  # type: ignore[attr-defined]
         import re
         s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower() + 's'
@@ -50,18 +50,18 @@ class AdvancedBaseMixin:
     # version_id = Column(Integer, nullable=False, default=1)
     # __mapper_args__ = { 'version_id_col': version_id }
 
-    def soft_delete(self, user_id: str = None) -> None:
+    def soft_delete(self, user_id: str | None = None) -> None:
         """Marks the record as deleted without dropping from DB."""
-        self.is_deleted = True
-        self.deleted_at = utc_now()
+        self.is_deleted = True  # type: ignore[assignment]
+        self.deleted_at = utc_now()  # type: ignore[assignment]
         if user_id:
-            self.deleted_by = user_id
+            self.deleted_by = user_id  # type: ignore[assignment]
 
     def restore(self) -> None:
         """Restores a soft-deleted record."""
-        self.is_deleted = False
-        self.deleted_at = None
-        self.deleted_by = None
+        self.is_deleted = False  # type: ignore[assignment]
+        self.deleted_at = None  # type: ignore[assignment]
+        self.deleted_by = None  # type: ignore[assignment]
 
     @validates('is_deleted')
     def validate_is_deleted(self, key, is_deleted):
@@ -72,7 +72,7 @@ class AdvancedBaseMixin:
     def to_dict(self) -> dict[str, Any]:
         """Converts the model instance into a dictionary for serialization."""
         result = {}
-        for column in self.__table__.columns:
+        for column in self.__table__.columns:  # type: ignore[attr-defined]
             val = getattr(self, column.name)
             if isinstance(val, datetime):
                 result[column.name] = val.isoformat()
@@ -87,8 +87,8 @@ class AdvancedBaseMixin:
 
     def update_audit(self, user_id: str):
         """Updates the audit trail for the current transaction."""
-        self.updated_by = user_id
-        self.updated_at = utc_now()
+        self.updated_by = user_id  # type: ignore[assignment]
+        self.updated_at = utc_now()  # type: ignore[assignment]
 
     def __repr__(self):
         return f"<{self.__class__.__name__}(id={self.id}, active={not self.is_deleted})>"

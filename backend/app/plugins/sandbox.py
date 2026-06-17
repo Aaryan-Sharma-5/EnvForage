@@ -50,7 +50,7 @@ def _restricted_execution_worker(plugin_code: str, context: dict[str, Any], resu
     }
 
     # Safe locals dictionary for the execution
-    safe_locals = {}
+    safe_locals: dict[str, Any] = {}
 
     try:
         # Pre-execution AST verification could go here
@@ -83,12 +83,12 @@ class PluginSandbox:
         self.timeout_seconds = timeout_seconds
         self.max_memory_mb = max_memory_mb
 
-    def execute(self, plugin_code: str, context: dict[str, Any] = None) -> Any:
+    def execute(self, plugin_code: str, context: dict[str, Any] | None = None) -> Any:
         context = context or {}
 
         logger.info(f"Starting sandboxed execution (timeout={self.timeout_seconds}s)")
 
-        result_queue = multiprocessing.Queue()
+        result_queue: multiprocessing.Queue[Any] = multiprocessing.Queue()
         process = multiprocessing.Process(
             target=_restricted_execution_worker,
             args=(plugin_code, context, result_queue)

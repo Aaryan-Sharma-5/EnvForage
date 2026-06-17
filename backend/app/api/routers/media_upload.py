@@ -11,12 +11,12 @@ MAX_PAYLOAD_SIZE = 5 * 1024 * 1024
 # Simple in-memory rate limiter for demonstration
 RATE_LIMIT_DURATION = 60 # seconds
 RATE_LIMIT_REQUESTS = 5 # max requests per duration
-rate_limit_records = {}
+rate_limit_records: dict[str, list[float]] = {}
 
 async def verify_content_length(request: Request):
     if "content-length" not in request.headers:
         raise HTTPException(status_code=411, detail="Length Required")
-    content_length = int(request.headers.get("content-length"))
+    content_length = int(request.headers.get("content-length") or "0")
     if content_length > MAX_PAYLOAD_SIZE:
         raise HTTPException(status_code=413, detail="Payload Too Large. Maximum allowed size is 5MB.")
     return content_length
