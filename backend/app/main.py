@@ -27,7 +27,7 @@ from app.api.v1 import (
     verify,
 )
 from app.api.v1.admin.matrix import router as admin_matrix_router
-from app.api.routers import feature_issue_803, feature_issue_804
+from app.api.routers import media_upload, spatial_query
 from app.cache import get_redis_client
 from app.config import get_settings
 from app.core.handlers import register_exception_handlers
@@ -142,8 +142,8 @@ def create_app() -> FastAPI:
     app.include_router(authentication.router, prefix="/api/v1", tags=["auth"])
     app.include_router(recommend.router, prefix="/api/v1", tags=["recommendations"])
     app.include_router(admin_matrix_router, prefix="/api/v1", tags=["admin-matrix"])
-    app.include_router(feature_issue_803.router, prefix="/api/v1", tags=["media"])
-    app.include_router(feature_issue_804.router, prefix="/api/v1", tags=["locations"])
+    app.include_router(media_upload.router, prefix="/api/v1", tags=["media"])
+    app.include_router(spatial_query.router, prefix="/api/v1", tags=["locations"])
 
     # ── Health check ──────────────────────────────────────────
     @app.get("/health", include_in_schema=False)
