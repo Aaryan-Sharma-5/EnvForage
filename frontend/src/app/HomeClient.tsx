@@ -13,8 +13,16 @@ import { useState, useEffect } from "react";
 
 export default function HomePage() {
 	const [isMounted, setIsMounted] = useState(false);
+	const [isMobile, setIsMobile] = useState(false);
+
 	useEffect(() => {
 		setIsMounted(true);
+		const checkMobile = () => {
+			setIsMobile(window.innerWidth < 768);
+		};
+		checkMobile();
+		window.addEventListener("resize", checkMobile);
+		return () => window.removeEventListener("resize", checkMobile);
 	}, []);
 
 	const { scrollY } = useScroll();
@@ -310,7 +318,7 @@ export default function HomePage() {
 			{/* Hero Section */}
 			<motion.section
 				style={{
-					y: heroY,
+					y: isMobile ? 0 : heroY,
 					position: "relative",
 					minHeight: "calc(100vh - 80px)",
 					display: "flex",
@@ -318,6 +326,7 @@ export default function HomePage() {
 					zIndex: 1,
 					padding: "4rem 0",
 					background: "transparent",
+					backfaceVisibility: "hidden",
 				}}
 			>
 				<div

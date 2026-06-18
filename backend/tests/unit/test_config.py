@@ -66,7 +66,7 @@ def test_production_cors_safeguards():
     Settings(
         environment="production",
         allowed_origins="*",
-        secret_key="prod-safe-key-123",
+        secret_key="prod-safe-key",
         admin_api_key="a" * 32,
         database_url="postgresql+asyncpg://postgres:postgres@db.production.internal:5432/envforage",
         redis_url="redis://localhost:6379/0",
@@ -76,7 +76,7 @@ def test_production_cors_safeguards():
     Settings(
         environment="production",
         allowed_origins="http://127.0.0.1:3000",
-        secret_key="prod-safe-key-123",
+        secret_key="prod-safe-key",
         admin_api_key="a" * 32,
         database_url="postgresql+asyncpg://postgres:postgres@db.production.internal:5432/envforage",
         redis_url="redis://localhost:6379/0",
@@ -86,7 +86,7 @@ def test_production_cors_safeguards():
     Settings(
         environment="production",
         allowed_origins="https://myproductionapp.com",
-        secret_key="prod-safe-key-123",
+        secret_key="prod-safe-key",
         admin_api_key="a" * 32,
         database_url="postgresql+asyncpg://postgres:postgres@localhost:5432/envforage",
         redis_url="redis://localhost:6379/0",
@@ -95,7 +95,7 @@ def test_production_cors_safeguards():
     Settings(
         environment="production",
         allowed_origins="https://myproductionapp.com",
-        secret_key="prod-safe-key-123",
+        secret_key="prod-safe-key",
         admin_api_key="a" * 32,
         database_url="postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/envforage",
         redis_url="redis://localhost:6379/0",
@@ -105,7 +105,7 @@ def test_production_cors_safeguards():
     prod_config = Settings(
         environment="production",
         allowed_origins="https://myproductionapp.com",
-        secret_key="prod-safe-key-123",
+        secret_key="prod-safe-key",
         admin_api_key="a" * 32,
         database_url="postgresql+asyncpg://postgres:postgres@db.production.internal:5432/envforage",
         redis_url="redis://localhost:6379/0",
