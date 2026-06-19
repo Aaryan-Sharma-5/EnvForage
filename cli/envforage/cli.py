@@ -218,18 +218,15 @@ async def _diagnose(
             f"CUDA={report.cuda.version or 'None'} | "
             f"Python={report.active_python.version if report.active_python else 'None'}"
         )
-    elif output_format == "table":
-        report_output = None  # Rich table already printed above
-    else:  # json
+    else:  # table or json both save/echo as JSON
         report_output = report.to_json(indent=2)
 
     # ── Output to file ──────────────────────────────────────────────────────
     if output:
-        if report_output is not None:
-            Path(output).write_text(report_output, encoding="utf-8")
-            if not quiet:
-                console.print(f"\n[green][+][/] Report saved to [bold]{output}[/]")
-    elif not send and report_output is not None:
+        Path(output).write_text(report_output, encoding="utf-8")
+        if not quiet:
+            console.print(f"\n[green][+][/] Report saved to [bold]{output}[/]")
+    elif not send and output_format != "table":
         click.echo(report_output)
 
     # ── Send to API ─────────────────────────────────────────────────────────
