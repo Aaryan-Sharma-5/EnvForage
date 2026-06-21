@@ -111,8 +111,8 @@ jobs:
           cd cli
           pyinstaller --onefile --name envforage envforage/__main__.py
 
-      - name: Compile Inno Setup GUI Installer
-        uses: Horimatsu/action-inno-setup@v1
+      - name: Compile Windows Installer (Inno Setup)
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
           script: cli/installer/setup.iss
 
