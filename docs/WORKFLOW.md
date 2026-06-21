@@ -1,7 +1,7 @@
 # EnvForage — Workflow Documentation
 
-> **Version**: 2.0.0
-> **Status**: Stable v2.0.0
+> **Version**: 2.1.0
+> **Status**: Stable v2.1.0
 > **Last Updated**: 2026-06-18
 
 ---
@@ -117,7 +117,7 @@ Select Target Profile from dropdown → Click "Run Check"
     ▼
 POST /api/v1/diagnose
 Body: DiagnosticReportSchema {
-  "agent_version": "2.0.0",
+  "agent_version": "2.1.0",
   "os": { "name": "Ubuntu 22.04", "version": "22.04", "architecture": "x86_64" },
   "cpu": { "brand": "Intel Core i9", "cores": 12, "threads": 24 },
   "ram": { "total_gb": 32.0, "available_gb": 20.0 },
